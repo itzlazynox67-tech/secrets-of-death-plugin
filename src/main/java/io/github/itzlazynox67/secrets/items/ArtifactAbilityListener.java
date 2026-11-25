@@ -171,7 +171,7 @@ public final class ArtifactAbilityListener implements Listener {
         for (Entity entity : player.getNearbyEntities(15, 15, 15)) {
             if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
             if (target.getLocation().distanceSquared(center) > 225) continue;
-            target.damage(20.0, player);
+            target.damage(10.0, player);
         }
     }
 
@@ -210,7 +210,7 @@ public final class ArtifactAbilityListener implements Listener {
                 org.bukkit.util.Vector shotDirection = player.getEyeLocation().getDirection().normalize();
                 fireball.setDirection(shotDirection);
                 fireball.setVelocity(shotDirection.multiply(6.0));
-                fireball.setYield(10.0f);
+                fireball.setYield(3.0f);
                 fireball.setIsIncendiary(false);
                 fireball.setShooter(player);
                 player.sendMessage(ChatColor.RED + "Hellfire launched!");
