@@ -13,6 +13,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class SecretsPlugin extends JavaPlugin {
     private ArtifactRegistry artifactRegistry;
     private ExplosionProtectionManager protectionManager;
+    private ArtifactAbilityListener artifactAbilityListener;
+    private SilenceAbilityListener silenceAbilityListener;
 
     @Override
     public void onEnable() {
@@ -21,8 +23,10 @@ public final class SecretsPlugin extends JavaPlugin {
         this.protectionManager = new ExplosionProtectionManager(this);
         getServer().getPluginManager().registerEvents(protectionManager, this);
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
-        getServer().getPluginManager().registerEvents(new ArtifactAbilityListener(this), this);
-        getServer().getPluginManager().registerEvents(new SilenceAbilityListener(this), this);
+        this.artifactAbilityListener = new ArtifactAbilityListener(this);
+        this.silenceAbilityListener = new SilenceAbilityListener(this);
+        getServer().getPluginManager().registerEvents(artifactAbilityListener, this);
+        getServer().getPluginManager().registerEvents(silenceAbilityListener, this);
         CollectionMenu collectionMenu = new CollectionMenu(this);
         getServer().getPluginManager().registerEvents(collectionMenu, this);
         if (getCommand("artifacts") != null) getCommand("artifacts").setExecutor(collectionMenu);
@@ -39,6 +43,13 @@ public final class SecretsPlugin extends JavaPlugin {
         command.setExecutor(handler);
         command.setTabCompleter(handler);
         getLogger().info("SecretsOfDeath enabled. Registered " + artifactRegistry.getDefinitions().size() + " collectible items.");
+    }
+
+    public boolean resetArtifactCooldowns(org.bukkit.entity.Player player, String artifactId) {
+        if ("silence".equalsIgnoreCase(artifactId)) {
+            return silenceAbilityListener != null && silenceAbilityListener.resetCooldowns(player, artifactId);
+        }
+        return artifactAbilityListener != null && artifactAbilityListener.resetCooldowns(player, artifactId);
     }
 
     public ExplosionProtectionManager getProtectionManager() { return protectionManager; }
