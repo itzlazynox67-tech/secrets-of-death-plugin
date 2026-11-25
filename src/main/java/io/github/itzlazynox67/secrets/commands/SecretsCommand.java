@@ -39,6 +39,10 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
+        if (!sender.isOp()) {
+            sender.sendMessage(msg("&cOnly server operators can use Secrets commands."));
+            return true;
+        }
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             sendHelp(sender, label);
             return true;
@@ -287,7 +291,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean requireAdmin(CommandSender sender) {
-        if (sender.hasPermission("secrets.admin")) return true;
+        if (sender.isOp()) return true;
         sender.sendMessage(msg("&cYou do not have permission to do that."));
         return false;
     }
@@ -322,6 +326,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                  @NotNull String alias, @NotNull String[] args) {
+        if (!sender.isOp()) return List.of();
         if (args.length == 1) {
             List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "artifacts", "items"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
