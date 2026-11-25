@@ -7,6 +7,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -64,6 +65,10 @@ public final class ArtifactAbilityListener implements Listener {
                             || "eclipse".equals(id(player.getInventory().getItemInOffHand()))) {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 60, 0, true, false, false));
                     }
+                    if ("book".equals(id(player.getInventory().getItemInMainHand())) || "book".equals(id(player.getInventory().getItemInOffHand()))) {
+                        Location ashCenter = player.getLocation().add(0, 0.15, 0);
+                        player.getWorld().spawnParticle(Particle.ASH, ashCenter, 3, 0.35, 0.12, 0.35, 0.005);
+                    }
                 }
             }
         }.runTaskTimer(plugin, 1L, 40L);
@@ -72,6 +77,22 @@ public final class ArtifactAbilityListener implements Listener {
     private boolean nearExplosiveThreat(Player player) {
         return !player.getNearbyEntities(10, 6, 10).stream().noneMatch(entity ->
                 entity instanceof Creeper || entity instanceof TNTPrimed || entity instanceof EnderCrystal);
+    }
+
+    @EventHandler
+    public void protectBookHolderAndBoots(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION || cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
+            if ("book".equals(id(player.getInventory().getItemInMainHand())) || "book".equals(id(player.getInventory().getItemInOffHand()))) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+        if (cause == EntityDamageEvent.DamageCause.FALL && "death_boots".equals(id(player.getInventory().getBoots()))) {
+            event.setCancelled(true);
+            player.setFallDistance(0);
+        }
     }
 
     @EventHandler
@@ -130,10 +151,11 @@ public final class ArtifactAbilityListener implements Listener {
                 blastforgeCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 30000L);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
                 blastforgeStability.put(player.getUniqueId(), System.currentTimeMillis() + 4000L);
-                player.getWorld().createExplosion(player.getLocation(), 8.0f, false, true, player);
+                player.getWorld().createExplosion(player.getLocation(), 12.0f, false, true, player);
                 player.sendMessage(ChatColor.GOLD + "Blastforge detonated!");
             }
             case "phoenix_wings" -> {
+                if (!player.isSneaking()) return;
                 event.setCancelled(true);
                 if (!ready(phoenixCooldowns, player, 45000L)) return;
                 phoenixCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 45000L);
@@ -148,7 +170,9 @@ public final class ArtifactAbilityListener implements Listener {
                 if (!ready(hellfireCooldowns, player, 30000L)) return;
                 hellfireCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 30000L);
                 Fireball fireball = player.launchProjectile(Fireball.class);
-                fireball.setDirection(player.getEyeLocation().getDirection());
+                org.bukkit.util.Vector shotDirection = player.getEyeLocation().getDirection().normalize();
+                fireball.setDirection(shotDirection);
+                fireball.setVelocity(shotDirection.multiply(2.5));
                 fireball.setYield(5.0f);
                 fireball.setIsIncendiary(false);
                 fireball.setShooter(player);
