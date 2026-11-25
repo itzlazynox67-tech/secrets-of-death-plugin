@@ -68,7 +68,7 @@ public final class ArtifactRegistry {
             case "deadlock" -> Material.NETHERITE_AXE;
             case "blastforge" -> Material.NETHERITE_PICKAXE;
             case "phoenix_wings" -> Material.ELYTRA;
-            case "silence" -> Material.WARPED_FUNGUS_ON_A_STICK;
+            case "silence" -> Material.NETHERITE_AXE;
             case "death_helmet" -> Material.NETHERITE_HELMET;
             case "death_chestplate" -> Material.NETHERITE_CHESTPLATE;
             case "death_leggings" -> Material.NETHERITE_LEGGINGS;
