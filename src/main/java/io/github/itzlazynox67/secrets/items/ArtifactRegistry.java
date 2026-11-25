@@ -1,6 +1,9 @@
 package io.github.itzlazynox67.secrets.items;
 
 import io.github.itzlazynox67.secrets.SecretsPlugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -59,7 +62,6 @@ public final class ArtifactRegistry {
 
         Material baseMaterial = switch (definition.id()) {
             case "book" -> Material.WRITTEN_BOOK;
-            case "deaths_embrace" -> Material.MACE;
             case "eclipse" -> Material.NETHERITE_SPEAR;
             case "deadlock" -> Material.NETHERITE_AXE;
             case "blastforge" -> Material.NETHERITE_PICKAXE;
@@ -83,7 +85,11 @@ public final class ArtifactRegistry {
             case "deaths_embrace" -> "&4&lDeath's &0&lEmbrace";
             default -> "&c&o" + definition.displayName();
         };
-        meta.setDisplayName(color(styledName));
+        if (definition.id().equals("deaths_embrace")) {
+            meta.displayName(deathEmbraceGradient());
+        } else {
+            meta.setDisplayName(color(styledName));
+        }
         meta.setLore(java.util.List.of(
                 color("&7Secrets of Death and Destruction"),
                 color("&8Collectible item"),
@@ -105,6 +111,21 @@ public final class ArtifactRegistry {
         item.setItemMeta(meta);
         ArtifactAbilityListener.applyEnchantments(item, definition.id());
         return item;
+    }
+
+    private Component deathEmbraceGradient() {
+        String name = "Death's Embrace";
+        int startRed = 139; // dark red (#8B0000)
+        Component result = Component.empty();
+
+        for (int i = 0; i < name.length(); i++) {
+            double progress = (double) i / (name.length() - 1);
+            int red = (int) Math.round(startRed * (1.0 - progress));
+            result = result.append(Component.text(String.valueOf(name.charAt(i)))
+                    .color(TextColor.color(red, 0, 0))
+                    .decorate(TextDecoration.BOLD));
+        }
+        return result;
     }
 
     private String color(String message) {
