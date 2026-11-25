@@ -76,11 +76,19 @@ public final class ExplosionProtectionManager implements Listener {
 
     public boolean hasProtectionToken(Player player) {
         for (ItemStack item : player.getInventory().getContents()) {
-            if (item == null || !item.hasItemMeta()) continue;
-            String id = item.getItemMeta().getPersistentDataContainer().get(artifactKey, PersistentDataType.STRING);
-            if ("explosion_gift".equals(id)) return true;
+            if (hasArtifactId(item, "explosion_gift")) return true;
         }
-        return false;
+        for (ItemStack item : player.getInventory().getArmorContents()) {
+            if (hasArtifactId(item, "explosion_gift")) return true;
+        }
+        return hasArtifactId(player.getInventory().getItemInOffHand(), "explosion_gift");
+    }
+
+    private boolean hasArtifactId(ItemStack item, String expectedId) {
+        if (item == null || !item.hasItemMeta()) return false;
+        String id = item.getItemMeta().getPersistentDataContainer()
+                .get(artifactKey, PersistentDataType.STRING);
+        return expectedId.equals(id);
     }
 
     public boolean isProtected(Player player) {
