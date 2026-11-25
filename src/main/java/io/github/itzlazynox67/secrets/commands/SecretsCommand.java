@@ -1,91 +1,234 @@
 package io.github.itzlazynox67.secrets.commands;
 
 import io.github.itzlazynox67.secrets.SecretsPlugin;
+import io.github.itzlazynox67.secrets.items.ArtifactDefinition;
+import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
+import io.github.itzlazynox67.secrets.items.SecretsBookFactory;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 public final class SecretsCommand implements CommandExecutor, TabCompleter {
-
     private final SecretsPlugin plugin;
+    private final ArtifactRegistry registry;
 
-    public SecretsCommand(SecretsPlugin plugin) {
+    public SecretsCommand(SecretsPlugin plugin, ArtifactRegistry registry) {
         this.plugin = plugin;
+        this.registry = registry;
     }
 
     @Override
-    public boolean onCommand(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String label,
-            @NotNull String[] args
-    ) {
-        if (!sender.hasPermission("secrets.use")) {
-            sender.sendMessage(color("&cYou do not have permission to use this command."));
-            return true;
-        }
-
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
+                             @NotNull String label, @NotNull String[] args) {
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             sendHelp(sender, label);
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
-            case "version" -> sender.sendMessage(color(
-                    "&8[&cSecrets&8] &7Version: &f" + plugin.getPluginMeta().getVersion()
-            ));
-            case "reload" -> {
-                if (!sender.hasPermission("secrets.admin")) {
-                    sender.sendMessage(color("&cYou do not have permission to reload this plugin."));
-                    return true;
-                }
-                plugin.reloadPluginConfiguration();
-                sender.sendMessage(color("&8[&cSecrets&8] &aConfiguration reloaded."));
-            }
+        switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "version" -> sender.sendMessage(msg("&7Version: &f" + plugin.getPluginMeta().getVersion()));
+            case "list" -> listItems(sender);
+            case "info" -> showInfo(sender, args);
+            case "give" -> giveItem(sender, args);
+            case "giveall" -> giveAll(sender, args);
+            case "coords" -> coordinates(sender, args);
+            case "reload" -> reload(sender);
+            case "book" -> giveBookToSelf(sender);
             default -> sendHelp(sender, label);
         }
         return true;
     }
 
-    private void sendHelp(CommandSender sender, String label) {
-        sender.sendMessage(color("&8&m--------------------------------"));
-        sender.sendMessage(color("&c&lSecrets of Death &7- Commands"));
-        sender.sendMessage(color("&f/" + label + " help &7- Show this help page"));
-        sender.sendMessage(color("&f/" + label + " version &7- Show plugin version"));
-        if (sender.hasPermission("secrets.admin")) {
-            sender.sendMessage(color("&f/" + label + " reload &7- Reload configuration"));
+    private void listItems(CommandSender sender) {
+        sender.sendMessage(msg("&c&lSecrets Collection &7(" + registry.getDefinitions().size() + " items)"));
+        for (ArtifactDefinition item : registry.getDefinitions()) {
+            sender.sendMessage(msg("&f- &e" + item.id() + " &8| &7" + item.displayName()));
         }
-        sender.sendMessage(color("&8&m--------------------------------"));
+    }
+
+    private void showInfo(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(msg("&cUsage: /secrets info <item>"));
+            return;
+        }
+        ArtifactDefinition item = registry.get(args[1]);
+        if (item == null) {
+            sender.sendMessage(msg("&cUnknown item. Use /secrets list."));
+            return;
+        }
+        sender.sendMessage(msg("&c&l" + item.displayName()));
+        sender.sendMessage(msg("&7ID: &f" + item.id()));
+        sender.sendMessage(msg("&7Model: &f" + item.modelId()));
+        sender.sendMessage(msg("&7" + item.description()));
+        sender.sendMessage(msg("&8This starter registers collectible items and models; active ability effects are not included."));
+    }
+
+    private void giveItem(CommandSender sender, String[] args) {
+        if (!requireAdmin(sender)) return;
+        if (args.length < 3) {
+            sender.sendMessage(msg("&cUsage: /secrets give <player> <item>"));
+            return;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            sender.sendMessage(msg("&cThat player is not online."));
+            return;
+        }
+        String id = args[2].toLowerCase(Locale.ROOT);
+        ArtifactDefinition definition = registry.get(id);
+        if (definition == null) {
+            sender.sendMessage(msg("&cUnknown item. Use /secrets list."));
+            return;
+        }
+        ItemStack item = id.equals("book")
+                ? SecretsBookFactory.create(plugin, definition)
+                : registry.createItem(id);
+        giveOrDrop(target, item);
+        sender.sendMessage(msg("&aGave &f" + definition.displayName() + " &ato &f" + target.getName() + "&a."));
+    }
+
+    private void giveAll(CommandSender sender, String[] args) {
+        if (!requireAdmin(sender)) return;
+        if (args.length < 2) {
+            sender.sendMessage(msg("&cUsage: /secrets giveall <player>"));
+            return;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            sender.sendMessage(msg("&cThat player is not online."));
+            return;
+        }
+        for (ArtifactDefinition definition : registry.getDefinitions()) {
+            ItemStack item = definition.id().equals("book")
+                    ? SecretsBookFactory.create(plugin, definition)
+                    : registry.createItem(definition.id());
+            giveOrDrop(target, item);
+        }
+        sender.sendMessage(msg("&aGave the collectible set to &f" + target.getName() + "&a."));
+    }
+
+    private void giveBookToSelf(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(msg("&cOnly a player can use /secrets book. Use /secrets give <player> book from console."));
+            return;
+        }
+        ArtifactDefinition definition = registry.get("book");
+        giveOrDrop(player, SecretsBookFactory.create(plugin, definition));
+        player.sendMessage(msg("&aYou received the Secrets book."));
+    }
+
+    private void coordinates(CommandSender sender, String[] args) {
+        if (args.length == 1) {
+            String world = plugin.getConfig().getString("book.last-page-coordinate.world", "world");
+            int x = plugin.getConfig().getInt("book.last-page-coordinate.x");
+            int y = plugin.getConfig().getInt("book.last-page-coordinate.y");
+            int z = plugin.getConfig().getInt("book.last-page-coordinate.z");
+            sender.sendMessage(msg("&7Book coordinates: &f" + world + " " + x + " " + y + " " + z));
+            return;
+        }
+        if (!requireAdmin(sender)) return;
+        if (args.length != 5) {
+            sender.sendMessage(msg("&cUsage: /secrets coords <world> <x> <y> <z>"));
+            return;
+        }
+        World world = Bukkit.getWorld(args[1]);
+        if (world == null) {
+            sender.sendMessage(msg("&cWorld not loaded or not found: " + args[1]));
+            return;
+        }
+        try {
+            int x = Integer.parseInt(args[2]);
+            int y = Integer.parseInt(args[3]);
+            int z = Integer.parseInt(args[4]);
+            plugin.getConfig().set("book.last-page-coordinate.world", world.getName());
+            plugin.getConfig().set("book.last-page-coordinate.x", x);
+            plugin.getConfig().set("book.last-page-coordinate.y", y);
+            plugin.getConfig().set("book.last-page-coordinate.z", z);
+            plugin.saveConfig();
+            sender.sendMessage(msg("&aBook coordinates updated. New books will show &f" + world.getName() + " " + x + " " + y + " " + z + "&a."));
+        } catch (NumberFormatException exception) {
+            sender.sendMessage(msg("&cCoordinates must be whole numbers."));
+        }
+    }
+
+    private void reload(CommandSender sender) {
+        if (!requireAdmin(sender)) return;
+        plugin.reloadPluginConfiguration();
+        sender.sendMessage(msg("&aConfiguration reloaded."));
+    }
+
+    private boolean requireAdmin(CommandSender sender) {
+        if (sender.hasPermission("secrets.admin")) return true;
+        sender.sendMessage(msg("&cYou do not have permission to do that."));
+        return false;
+    }
+
+    private void giveOrDrop(Player target, ItemStack item) {
+        if (item == null) return;
+        var leftovers = target.getInventory().addItem(item);
+        leftovers.values().forEach(leftover -> target.getWorld().dropItemNaturally(target.getLocation(), leftover));
+    }
+
+    private void sendHelp(CommandSender sender, String label) {
+        sender.sendMessage(msg("&8&m--------------------------------"));
+        sender.sendMessage(msg("&c&lSecrets of Death &7Commands"));
+        sender.sendMessage(msg("&f/" + label + " list &7- List collectible items"));
+        sender.sendMessage(msg("&f/" + label + " info <item> &7- View item details"));
+        sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
+        sender.sendMessage(msg("&f/" + label + " coords &7- View book coordinates"));
+        sender.sendMessage(msg("&f/" + label + " version &7- Show plugin version"));
+        if (sender.hasPermission("secrets.admin")) {
+            sender.sendMessage(msg("&f/" + label + " give <player> <item> &7- Give one collectible"));
+            sender.sendMessage(msg("&f/" + label + " giveall <player> &7- Give the full collection"));
+            sender.sendMessage(msg("&f/" + label + " coords <world> <x> <y> <z> &7- Set book coordinates"));
+            sender.sendMessage(msg("&f/" + label + " reload &7- Reload configuration"));
+        }
+        sender.sendMessage(msg("&8&m--------------------------------"));
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(
-            @NotNull CommandSender sender,
-            @NotNull Command command,
-            @NotNull String alias,
-            @NotNull String[] args
-    ) {
-        if (args.length != 1) {
-            return List.of();
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
+                                                 @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 1) {
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords"));
+            if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
+            return filter(options, args[0]);
         }
-
-        List<String> options = new ArrayList<>(List.of("help", "version"));
-        if (sender.hasPermission("secrets.admin")) {
-            options.add("reload");
+        if (args.length == 2 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("giveall"))) {
+            return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
         }
-
-        String prefix = args[0].toLowerCase();
-        return options.stream().filter(option -> option.startsWith(prefix)).toList();
+        if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
+            return filter(registry.getDefinitions().stream().map(ArtifactDefinition::id).toList(), args[2]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("info")) {
+            return filter(registry.getDefinitions().stream().map(ArtifactDefinition::id).toList(), args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("coords")) {
+            return filter(Bukkit.getWorlds().stream().map(World::getName).toList(), args[1]);
+        }
+        return List.of();
     }
 
-    private String color(String message) {
-        return ChatColor.translateAlternateColorCodes('&', message);
+    private List<String> filter(List<String> options, String prefix) {
+        String lower = prefix.toLowerCase(Locale.ROOT);
+        return options.stream().filter(value -> value.toLowerCase(Locale.ROOT).startsWith(lower)).collect(Collectors.toList());
+    }
+
+    private String msg(String message) {
+        return ChatColor.translateAlternateColorCodes('&', "&8[&cSecrets&8] &r" + message);
     }
 }

@@ -1,0 +1,31 @@
+{
+  "target_minecraft_java_version": "1.21.11",
+  "resource_pack_format": 75,
+  "namespace": "modeling",
+  "item_model_component_map": {
+    "champions_blade": "modeling:champion_blade",
+    "chicken_fallen_luck": "modeling:chicken_fallen_luck",
+    "command_log": "modeling:command_log",
+    "crown_inventory_icon": "modeling:crown",
+    "cycletation": "modeling:cycle",
+    "death_embrace": "modeling:death_embrace",
+    "secrets_of_death_and_destruction_book": "modeling:death_of_destruction",
+    "glitch": "modeling:glitch",
+    "midas": "modeling:midas",
+    "shadow_harvester": "modeling:shadow_harvester",
+    "silence": "modeling:silence",
+    "speed_demons_soul": "modeling:speed_demon"
+  },
+  "equipment_asset_map": {
+    "crown_worn_armor_texture": "modeling:crown_worn",
+    "gods_helmet_armor_texture": "modeling:god_helmet"
+  },
+  "audit": {
+    "item_definitions_found": 12,
+    "item_model_json_files_found": 13,
+    "item_png_textures_found": 14,
+    "missing_model_or_texture_references": [],
+    "note": "This pack includes 12 item model IDs. It does not yet include unique item models for every planned plugin artifact or every weapon/armor item."
+  },
+  "integration_note": "On Paper 1.21.11, set ItemMeta#setItemModel(NamespacedKey.fromString(item_model_id)) on each custom item. For worn armor textures, set the item's equippable asset_id to the matching equipment asset where appropriate."
+}

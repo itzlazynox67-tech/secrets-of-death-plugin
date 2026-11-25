@@ -1,5 +1,4 @@
-# Secrets of Death - main configuration
-# Values can be expanded as the project is developed.
+# Secrets of Death and Destruction configuration
 settings:
   debug: false
   language: en_US
@@ -14,7 +13,6 @@ book:
     z: 0
 
 resource-pack:
-  # Keep the resource pack hosted separately and provide its public download URL here later.
   enabled: false
   url: ""
   sha1: ""

@@ -1,14 +1,17 @@
 package io.github.itzlazynox67.secrets;
 
 import io.github.itzlazynox67.secrets.commands.SecretsCommand;
+import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class SecretsPlugin extends JavaPlugin {
+    private ArtifactRegistry artifactRegistry;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        this.artifactRegistry = new ArtifactRegistry(this);
 
         PluginCommand command = getCommand("secrets");
         if (command == null) {
@@ -17,11 +20,14 @@ public final class SecretsPlugin extends JavaPlugin {
             return;
         }
 
-        SecretsCommand handler = new SecretsCommand(this);
+        SecretsCommand handler = new SecretsCommand(this, artifactRegistry);
         command.setExecutor(handler);
         command.setTabCompleter(handler);
+        getLogger().info("SecretsOfDeath enabled. Registered " + artifactRegistry.getDefinitions().size() + " collectible items.");
+    }
 
-        getLogger().info("SecretsOfDeath enabled. Project foundation is ready.");
+    public ArtifactRegistry getArtifactRegistry() {
+        return artifactRegistry;
     }
 
     public void reloadPluginConfiguration() {

@@ -3,18 +3,18 @@ version: '${version}'
 main: io.github.itzlazynox67.secrets.SecretsPlugin
 api-version: '1.21.11'
 author: itzlazynox67
-description: Project foundation for the Secrets of Death and Destruction plugin.
+description: Secrets of Death and Destruction collectible items and book.
 
 commands:
   secrets:
-    description: Main Secrets of Death plugin command.
-    usage: /secrets <help|version|reload>
+    description: Secrets of Death item and book commands.
+    usage: /secrets <help|list|info|book|give|giveall|coords|version|reload>
     aliases: [sod]
 
 permissions:
   secrets.use:
-    description: Allows use of basic Secrets of Death commands.
+    description: Allows use of basic Secrets commands.
     default: true
   secrets.admin:
-    description: Allows administration commands for Secrets of Death.
+    description: Allows giving items and changing settings.
     default: op
