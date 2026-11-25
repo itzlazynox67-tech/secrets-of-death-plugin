@@ -56,6 +56,12 @@ public final class SilenceAbilityListener implements Listener {
         return false;
     }
 
+    public boolean resetCooldowns(Player player, String artifactId) {
+        if (!"silence".equalsIgnoreCase(artifactId)) return false;
+        cooldowns.remove(player.getUniqueId());
+        return true;
+    }
+
     private boolean ready(Player player, String ability, long cooldownMillis) {
         long now = System.currentTimeMillis();
         Map<String, Long> playerCooldowns = cooldowns.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>());
