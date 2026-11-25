@@ -221,7 +221,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                  @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
         }
