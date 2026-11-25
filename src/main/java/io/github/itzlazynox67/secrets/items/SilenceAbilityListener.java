@@ -3,6 +3,7 @@ package io.github.itzlazynox67.secrets.items;
 import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
 import org.bukkit.entity.*;
+import org.bukkit.block.BlockState;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -39,6 +40,9 @@ public final class SilenceAbilityListener implements Listener {
                     if (hasSilence(player)) {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1, true, false, true));
                         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 60, 0, true, false, true));
+                        Location aura = player.getLocation().add(0, 1.0, 0);
+                        player.getWorld().spawnParticle(Particle.SCULK_SOUL, aura, 8, 0.45, 0.65, 0.45, 0.015);
+                        player.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, aura, 2, 0.35, 0.55, 0.35, 0.01);
                         if (rampageEnds.getOrDefault(player.getUniqueId(), 0L) > now) {
                             player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 4, true, false, true));
@@ -188,6 +192,7 @@ public final class SilenceAbilityListener implements Listener {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 1200, 1, true, false, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 1200, 0, true, false, true));
 
+        replaceDomainBlocks(center, expiresAt);
         center.getWorld().playSound(center, Sound.ENTITY_WARDEN_ROAR, 1.6f, 0.65f);
         center.getWorld().playSound(center, Sound.BLOCK_SCULK_CATALYST_BLOOM, 1.4f, 0.7f);
         burst(center, 1200);
@@ -262,6 +267,55 @@ public final class SilenceAbilityListener implements Listener {
                 ticks++;
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private record BlockSnapshot(World world, int x, int y, int z, BlockState state) {}
+
+    /**
+     * Temporarily turns every non-air, non-tile-entity block in a 30-block
+     * spherical domain into sculk. Original states are restored after one
+     * minute, but blocks players change during the domain are left alone.
+     */
+    private void replaceDomainBlocks(Location center, long expiresAt) {
+        World world = center.getWorld();
+        int cx = center.getBlockX(), cy = center.getBlockY(), cz = center.getBlockZ();
+        List<BlockSnapshot> snapshots = new ArrayList<>();
+        new BukkitRunnable() {
+            int cursor = 0;
+            final int total = 61 * 61 * 61;
+            @Override public void run() {
+                int processed = 0;
+                while (cursor < total && processed < 2000) {
+                    int index = cursor++;
+                    int dx = index / (61 * 61) - 30;
+                    int dy = (index / 61) % 61 - 30;
+                    int dz = index % 61 - 30;
+                    if (dx * dx + dy * dy + dz * dz > 900) continue;
+                    int x = cx + dx, y = cy + dy, z = cz + dz;
+                    if (y < world.getMinHeight() || y >= world.getMaxHeight()) continue;
+                    if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
+                    org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                    if (block.getType().isAir() || block.getState() instanceof org.bukkit.block.TileState) continue;
+                    BlockState original = block.getState();
+                    snapshots.add(new BlockSnapshot(world, x, y, z, original));
+                    block.setType(Material.SCULK, false);
+                    processed++;
+                }
+                if (cursor >= total) cancel();
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+
+        new BukkitRunnable() {
+            @Override public void run() {
+                for (BlockSnapshot snapshot : snapshots) {
+                    World w = snapshot.world();
+                    if (!w.isChunkLoaded(snapshot.x() >> 4, snapshot.z() >> 4)) continue;
+                    org.bukkit.block.Block current = w.getBlockAt(snapshot.x(), snapshot.y(), snapshot.z());
+                    if (current.getType() == Material.SCULK) snapshot.state().update(true, false);
+                }
+                snapshots.clear();
+            }
+        }.runTaskLater(plugin, 1200L);
     }
 
     private void groundSlam(Player player) {
@@ -476,10 +530,14 @@ public final class SilenceAbilityListener implements Listener {
     public void protectSilenceHoldersFromWardens(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
         if (!(event.getEntity() instanceof Warden warden) || !(event.getTarget() instanceof Player target)) return;
         // Protect every Silence holder, not only the player who summoned a soldier.
-        if (hasSilence(target)) {
-            event.setCancelled(true);
-            warden.setTarget(null);
-        }
+        if (hasSilence(target)) event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void protectSilenceHoldersFromWardenDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Warden
+                && event.getEntity() instanceof Player target
+                && hasSilence(target)) event.setCancelled(true);
     }
 
     @EventHandler
