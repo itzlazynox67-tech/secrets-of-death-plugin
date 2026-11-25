@@ -107,8 +107,9 @@ public final class ArtifactAbilityListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        // With either protection item active, nearby explosive threats grant full damage immunity.
-        if ((hasBook || hasGiftProtection) && nearExplosiveThreat(player)) {
+        // Only the Secrets book grants broad immunity while near explosive threats.
+        // The protection gift blocks explosion damage itself, not unrelated damage.
+        if (hasBook && nearExplosiveThreat(player)) {
             event.setCancelled(true);
             return;
         }
