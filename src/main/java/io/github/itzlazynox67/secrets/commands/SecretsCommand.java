@@ -240,9 +240,11 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         }
         World world = player.getWorld();
         switch (ability) {
-            case "clear" -> { if (world.getEnvironment() == World.Environment.NORMAL) world.setStorm(false); }
-            case "rain" -> { if (world.getEnvironment() == World.Environment.NORMAL) { world.setStorm(true); world.setThundering(false); } }
-            case "thunder" -> { if (world.getEnvironment() == World.Environment.NORMAL) { world.setStorm(true); world.setThundering(true); } }
+            // Apply weather to the player's current world, including loaded custom
+            // dimensions that support Overworld-style precipitation.
+            case "clear" -> world.setStorm(false);
+            case "rain" -> { world.setStorm(true); world.setThundering(false); }
+            case "thunder" -> { world.setStorm(true); world.setThundering(true); }
             case "day" -> world.setTime(1000);
             case "night" -> world.setTime(13000);
             case "midnight" -> world.setTime(18000);
