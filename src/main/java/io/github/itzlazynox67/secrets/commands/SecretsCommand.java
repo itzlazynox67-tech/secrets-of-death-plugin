@@ -192,6 +192,11 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        if (id.startsWith("cycle_")) {
+            activateCycletation(player, id.substring(6));
+            return;
+        }
+
         ItemStack item;
         switch (id) {
             case "tnt" -> item = new ItemStack(org.bukkit.Material.TNT, 64);
@@ -218,6 +223,78 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         giveOrDrop(player, item);
         playClaimEffects(player);
         player.sendMessage(msg("&aClaimed &f" + id.replace('_', ' ') + "&a."));
+    }
+
+    private final java.util.Map<java.util.UUID, Long> cycletationCooldowns = new java.util.HashMap<>();
+
+    private void activateCycletation(Player player, String ability) {
+        long now = System.currentTimeMillis();
+        long readyAt = cycletationCooldowns.getOrDefault(player.getUniqueId(), 0L);
+        if (now < readyAt) {
+            long seconds = Math.max(1, (readyAt - now + 999) / 1000);
+            player.sendMessage(msg("&cYou cannot use Cycletation yet. Cooldown: " + seconds + "s"));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1.0f, 0.0f);
+            return;
+        }
+        World world = player.getWorld();
+        switch (ability) {
+            case "clear" -> { if (world.getEnvironment() == World.Environment.NORMAL) world.setStorm(false); }
+            case "rain" -> { if (world.getEnvironment() == World.Environment.NORMAL) { world.setStorm(true); world.setThundering(false); } }
+            case "thunder" -> { if (world.getEnvironment() == World.Environment.NORMAL) { world.setStorm(true); world.setThundering(true); } }
+            case "day" -> world.setTime(1000);
+            case "night" -> world.setTime(13000);
+            case "midnight" -> world.setTime(18000);
+            case "noon" -> world.setTime(6000);
+            case "godswill" -> {
+                giveOrDrop(player, registry.createItem("godswill"));
+                player.sendMessage(msg("&bYou received God's Will."));
+            }
+            case "forged_helmet", "forged_chestplate", "forged_leggings", "forged_boots" -> {
+                org.bukkit.Material material = switch (ability) {
+                    case "forged_helmet" -> org.bukkit.Material.DIAMOND_HELMET;
+                    case "forged_chestplate" -> org.bukkit.Material.DIAMOND_CHESTPLATE;
+                    case "forged_leggings" -> org.bukkit.Material.DIAMOND_LEGGINGS;
+                    default -> org.bukkit.Material.DIAMOND_BOOTS;
+                };
+                ItemStack armor = new ItemStack(material);
+                ItemMeta meta = armor.getItemMeta();
+                if (meta != null) {
+                    meta.setDisplayName(ChatColor.AQUA + switch (ability) {
+                        case "forged_helmet" -> "Forged Armor";
+                        case "forged_chestplate" -> "Forged Chestplate";
+                        case "forged_leggings" -> "Forged Leggings";
+                        default -> "Forged Boots";
+                    });
+                    meta.setLore(List.of(ChatColor.GRAY + "Armor from the heavens"));
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, 4, true);
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.FIRE_PROTECTION, 4, true);
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.MENDING, 1, true);
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 3, true);
+                    if (ability.equals("forged_helmet")) {
+                        meta.addEnchant(org.bukkit.enchantments.Enchantment.RESPIRATION, 3, true);
+                        meta.addEnchant(org.bukkit.enchantments.Enchantment.AQUA_AFFINITY, 1, true);
+                    } else if (ability.equals("forged_leggings")) meta.addEnchant(org.bukkit.enchantments.Enchantment.SWIFT_SNEAK, 3, true);
+                    else if (ability.equals("forged_boots")) {
+                        meta.addEnchant(org.bukkit.enchantments.Enchantment.DEPTH_STRIDER, 3, true);
+                        meta.addEnchant(org.bukkit.enchantments.Enchantment.FEATHER_FALLING, 4, true);
+                    }
+                    if (meta instanceof org.bukkit.inventory.meta.ArmorMeta armorMeta) {
+                        armorMeta.setTrim(new org.bukkit.inventory.meta.trim.ArmorTrim(
+                                org.bukkit.inventory.meta.trim.TrimMaterial.NETHERITE,
+                                org.bukkit.inventory.meta.trim.TrimPattern.SILENCE));
+                    }
+                    armor.setItemMeta(meta);
+                }
+                giveOrDrop(player, armor);
+                player.sendMessage(msg("&bYou received " + ChatColor.stripColor(armor.getItemMeta().getDisplayName()) + "."));
+            }
+            default -> { player.sendMessage(msg("&cUnknown Cycletation entry.")); return; }
+        }
+        cycletationCooldowns.put(player.getUniqueId(), now + 10000L);
+        world.playSound(player.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1.0f, 1.0f);
+        world.strikeLightningEffect(player.getLocation().clone().add(0, 1, 0));
+        world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, player.getLocation(), 100, 1, 0, 1, 0.01);
+        player.sendMessage(msg("&aCycletation activated. 10-second cooldown."));
     }
 
     // Matches the reward effects used by POVS_V2's item *_run functions.
