@@ -26,6 +26,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) { sender.sendMessage(ChatColor.RED + "Only players can open this menu."); return true; }
+        if (!player.isOp()) { player.sendMessage(ChatColor.RED + "Only server operators can use this command."); return true; }
         if (command.getName().equalsIgnoreCase("artifacts")) openArtifacts(player);
         else openItems(player);
         return true;
@@ -79,8 +80,8 @@ public final class CollectionMenu implements Listener, CommandExecutor {
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta() || !clicked.getItemMeta().hasLore()) return;
-        if (!player.hasPermission("secrets.admin")) {
-            player.sendMessage(ChatColor.RED + "You can browse this menu, but need secrets.admin to receive items.");
+        if (!player.isOp()) {
+            player.sendMessage(ChatColor.RED + "Only server operators can receive items from this menu.");
             return;
         }
         String id = null;
