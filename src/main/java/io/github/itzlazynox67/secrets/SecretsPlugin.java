@@ -5,7 +5,8 @@ import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import io.github.itzlazynox67.secrets.items.ArtifactAbilityListener;
 import io.github.itzlazynox67.secrets.items.SilenceAbilityListener;
 import io.github.itzlazynox67.secrets.items.ExplosionProtectionManager;
-import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;\nimport io.github.itzlazynox67.secrets.items.CollectionMenu;
+import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
+import io.github.itzlazynox67.secrets.items.CollectionMenu;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -21,7 +22,11 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(protectionManager, this);
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
         getServer().getPluginManager().registerEvents(new ArtifactAbilityListener(this), this);
-        getServer().getPluginManager().registerEvents(new SilenceAbilityListener(this), this);\n        CollectionMenu collectionMenu = new CollectionMenu(this);\n        getServer().getPluginManager().registerEvents(collectionMenu, this);\n        if (getCommand("artifacts") != null) getCommand("artifacts").setExecutor(collectionMenu);\n        if (getCommand("items") != null) getCommand("items").setExecutor(collectionMenu);
+        getServer().getPluginManager().registerEvents(new SilenceAbilityListener(this), this);
+        CollectionMenu collectionMenu = new CollectionMenu(this);
+        getServer().getPluginManager().registerEvents(collectionMenu, this);
+        if (getCommand("artifacts") != null) getCommand("artifacts").setExecutor(collectionMenu);
+        if (getCommand("items") != null) getCommand("items").setExecutor(collectionMenu);
 
         PluginCommand command = getCommand("secrets");
         if (command == null) {
