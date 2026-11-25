@@ -7,6 +7,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -14,14 +17,23 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 
-public final class CollectionMenu implements Listener {
+public final class CollectionMenu implements Listener, CommandExecutor {
     private final SecretsPlugin plugin;
 
     public CollectionMenu(SecretsPlugin plugin) { this.plugin = plugin; }
 
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player player)) { sender.sendMessage(ChatColor.RED + "Only players can open this menu."); return true; }
+        if (command.getName().equalsIgnoreCase("artifacts")) openArtifacts(player);
+        else openItems(player);
+        return true;
+    }
+
     public void openArtifacts(Player player) {
         Inventory menu = Bukkit.createInventory(null, 27, ChatColor.DARK_AQUA + "Artifacts");
-        menu.setItem(11, entry(plugin.getArtifactRegistry().createItem("book"), "Secrets of Death", "The Secrets of Death collection book."));
+        menu.setItem(11, entry(SecretsBookFactory.create(plugin, plugin.getArtifactRegistry().get("book")), "Secrets of Death", "The Secrets of Death collection book."));
         menu.setItem(15, entry(plugin.getArtifactRegistry().createItem("silence"), "Silence", "A separate Warden-themed artifact."));
         player.openInventory(menu);
     }
