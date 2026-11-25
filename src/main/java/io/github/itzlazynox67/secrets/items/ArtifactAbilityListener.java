@@ -8,7 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -74,7 +73,30 @@ public final class ArtifactAbilityListener implements Listener {
     @EventHandler
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
-        if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))) return;
+        String weaponId = id(player.getInventory().getItemInMainHand());
+        if ("deadlock".equals(weaponId) && event.getEntity() instanceof LivingEntity hitTarget) {
+            long now = System.currentTimeMillis();
+            if (now >= deadlockCooldowns.getOrDefault(player.getUniqueId(), 0L)) {
+                deadlockCooldowns.put(player.getUniqueId(), now + 1500L);
+                Location center = hitTarget.getLocation();
+                int locked = 0;
+                List<LivingEntity> targets = new ArrayList<>();
+                targets.add(hitTarget);
+                for (Entity nearby : hitTarget.getNearbyEntities(10, 5, 10)) {
+                    if (nearby instanceof LivingEntity target && !target.equals(player) && !targets.contains(target)) targets.add(target);
+                }
+                for (LivingEntity target : targets) {
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
+                    target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 30,
+                            0.4, 0.8, 0.4, new Particle.DustOptions(Color.RED, 1.8f));
+                    if (target instanceof Player victim) victim.sendMessage(ChatColor.DARK_RED + "DeadLock has locked you!");
+                    target.damage(7.0, player);
+                    locked++;
+                }
+                player.sendMessage(ChatColor.RED + "DeadLock locked " + locked + " target(s) in the 10-block area.");
+            }
+        }
+        if (!"deaths_embrace".equals(weaponId)) return;
         long now = System.currentTimeMillis();
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
@@ -98,47 +120,24 @@ public final class ArtifactAbilityListener implements Listener {
         if (itemId == null) return;
 
         switch (itemId) {
-            case "deadlock" -> {
-                event.setCancelled(true);
-                if (!ready(deadlockCooldowns, player, 15000L)) return;
-                deadlockCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 15000L);
-                List<LivingEntity> marked = player.getNearbyEntities(12, 8, 12).stream()
-                        .filter(LivingEntity.class::isInstance).map(LivingEntity.class::cast)
-                        .filter(target -> !target.equals(player)).toList();
-                for (LivingEntity target : marked) {
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 1, true, true, true));
-                    target.sendMessage(ChatColor.RED + "You have been locked!");
-                    target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 35,
-                            0.5, 0.8, 0.5, new Particle.DustOptions(Color.RED, 1.5f));
-                }
-                player.sendMessage(ChatColor.DARK_RED + "DeadLock: " + marked.size() + " target(s) marked.");
-                new BukkitRunnable() {
-                    @Override public void run() {
-                        for (LivingEntity target : marked) {
-                            if (!target.isValid() || target.isDead() || target.getWorld() != player.getWorld()) continue;
-                            if (target.getLocation().distanceSquared(player.getLocation()) > 49) continue;
-                            target.getWorld().spawnParticle(Particle.EXPLOSION, target.getLocation(), 1);
-                            target.getWorld().playSound(target.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 0.8f);
-                            target.damage(7.0, player);
-                        }
-                    }
-                }.runTaskLater(plugin, 120L);
-            }
             case "blastforge" -> {
                 event.setCancelled(true);
                 if (!ready(blastforgeCooldowns, player, 30000L)) return;
                 blastforgeCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 30000L);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
                 blastforgeStability.put(player.getUniqueId(), System.currentTimeMillis() + 4000L);
-                Location base = player.getEyeLocation();
-                org.bukkit.util.Vector direction = base.getDirection().normalize();
-                for (int i = 2; i <= 6; i += 2) {
-                    Location spawn = base.clone().add(direction.clone().multiply(i));
-                    TNTPrimed tnt = player.getWorld().spawn(spawn, TNTPrimed.class);
-                    tnt.setFuseTicks(1);
-                    tnt.setSource(player);
-                }
-                player.sendMessage(ChatColor.GOLD + "Blastforge activated!");
+                player.getWorld().createExplosion(player.getLocation(), 8.0f, false, true, player);
+                player.sendMessage(ChatColor.GOLD + "Blastforge detonated!");
+            }
+            case "phoenix_wings" -> {
+                event.setCancelled(true);
+                if (!ready(phoenixCooldowns, player, 45000L)) return;
+                phoenixCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 45000L);
+                player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 3, 0.6, 0.3, 0.6);
+                player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.5f, 0.7f);
+                player.setFallDistance(0);
+                player.setVelocity(new org.bukkit.util.Vector(0, 4.2, 0));
+                player.sendMessage(ChatColor.GOLD + "Phoenix Wings launched you skyward!");
             }
             case "hellfire" -> {
                 event.setCancelled(true);
@@ -161,17 +160,6 @@ public final class ArtifactAbilityListener implements Listener {
         if (until == null || System.currentTimeMillis() > until) return;
         org.bukkit.util.Vector velocity = event.getVelocity();
         event.setVelocity(new org.bukkit.util.Vector(0, Math.max(0, velocity.getY()), 0));
-    }
-
-    @EventHandler
-    public void onGlide(EntityToggleGlideEvent event) {
-        if (!event.isGliding() || !(event.getEntity() instanceof Player player)) return;
-        if (!"phoenix_wings".equals(id(player.getInventory().getChestplate()))) return;
-        if (!ready(phoenixCooldowns, player, 45000L)) return;
-        phoenixCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 45000L);
-        player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 2, 0.5, 0.5, 0.5);
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 1.2f);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 35, 1, true, true, true));
     }
 
     private boolean ready(Map<UUID, Long> cooldowns, Player player, long cooldownMillis) {
