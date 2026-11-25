@@ -39,7 +39,7 @@ public final class SecretsBookFactory {
                 colored("Flint and Steel", NamedTextColor.BLACK, "flint_and_steel"),
                 line("\n\n"),
                 colored("Fireworks", NamedTextColor.DARK_RED, "fireworks"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Explosion Protection Gift", NamedTextColor.GREEN, "explosion_gift")
         ));
 
