@@ -38,7 +38,9 @@ public final class SecretsBookFactory {
                 line("\n\n"),
                 colored("Flint and Steel", NamedTextColor.BLACK, "flint_and_steel"),
                 line("\n\n"),
-                colored("Fireworks", NamedTextColor.DARK_RED, "fireworks")
+                colored("Fireworks", NamedTextColor.DARK_RED, "fireworks"),
+                line("\\n\\n"),
+                colored("Explosion Protection Gift", NamedTextColor.GREEN, "explosion_gift")
         ));
 
         // Page 2 — spear, mace, and Death's Overlayer armor.
