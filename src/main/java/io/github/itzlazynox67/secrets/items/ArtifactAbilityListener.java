@@ -90,7 +90,7 @@ public final class ArtifactAbilityListener implements Listener {
     private boolean nearExplosiveThreat(Player player) {
         for (Entity entity : player.getNearbyEntities(10, 6, 10)) {
             if (entity instanceof Creeper || entity instanceof TNTPrimed
-                    || entity instanceof EnderCrystal || entity instanceof TNTMinecart) return true;
+                    || entity instanceof EnderCrystal || entity instanceof org.bukkit.entity.minecart.ExplosiveMinecart) return true;
         }
         return false;
     }
