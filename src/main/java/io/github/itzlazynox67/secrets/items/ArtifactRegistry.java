@@ -60,6 +60,9 @@ public final class ArtifactRegistry {
         Material baseMaterial = switch (definition.id()) {
             case "book" -> Material.WRITTEN_BOOK;
             case "deaths_embrace" -> Material.MACE;
+            case "eclipse" -> Material.NETHERITE_SPEAR;
+            case "deadlock" -> Material.NETHERITE_AXE;
+            case "blastforge" -> Material.NETHERITE_PICKAXE;
             case "phoenix_wings" -> Material.ELYTRA;
             case "death_helmet" -> Material.NETHERITE_HELMET;
             case "death_chestplate" -> Material.NETHERITE_CHESTPLATE;
@@ -88,6 +91,7 @@ public final class ArtifactRegistry {
             plugin.getLogger().warning("Invalid model key for " + definition.id() + ": " + definition.modelId());
         }
         item.setItemMeta(meta);
+        ArtifactAbilityListener.applyEnchantments(item, definition.id());
         return item;
     }
 
