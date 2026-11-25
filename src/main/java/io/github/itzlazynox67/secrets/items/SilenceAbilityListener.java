@@ -116,7 +116,15 @@ public final class SilenceAbilityListener implements Listener {
             int step = 1;
             final Set<UUID> hit = new HashSet<>();
             @Override public void run() {
-                if (step > 35 || !player.isOnline()) { cancel(); return; }
+                if (step > 35 || !player.isOnline()) {
+                    if (player.isOnline()) {
+                        Location end = eye.clone().add(direction.clone().multiply(35));
+                        player.getWorld().playSound(end, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.2f, 1.0f);
+                        player.getWorld().spawnParticle(Particle.SONIC_BOOM, end, 8, 0.35, 0.35, 0.35, 0.02);
+                    }
+                    cancel();
+                    return;
+                }
                 Location point = eye.clone().add(direction.clone().multiply(step));
                 player.getWorld().spawnParticle(Particle.SONIC_BOOM, point, 1, 0, 0, 0, 0);
                 player.getWorld().spawnParticle(Particle.SCULK_SOUL, point, 5, 0.15, 0.15, 0.15, 0.01);
@@ -153,7 +161,7 @@ public final class SilenceAbilityListener implements Listener {
         if (!ready(player, "Sensory Overload", 900_000L)) return;
         Location center = player.getLocation();
         center.getWorld().playSound(center, Sound.ENTITY_WARDEN_ROAR, 1.2f, 0.8f);
-        center.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, center, 100, 1, 1, 1, 0.1);
+        burst(center, 600);
         for (Entity entity : player.getNearbyEntities(50, 50, 50)) {
             if (!(entity instanceof Player target) || target.equals(player)) continue;
             if (plugin.getProtectionManager().isProtected(target)) continue;
@@ -184,8 +192,10 @@ public final class SilenceAbilityListener implements Listener {
                     if (ticks >= 20) airborne = true;
                 } else if (player.isOnGround() && ticks > 25) {
                     Location landing = player.getLocation();
+                    burst(landing, 700);
                     landing.getWorld().spawnParticle(Particle.CRIT, landing, 250, 4, 1, 4, 0.3);
                     landing.getWorld().playSound(landing, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 1.2f, 1.0f);
+                    landing.getWorld().playSound(landing, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 1.0f, 0.8f);
                     for (Entity entity : player.getNearbyEntities(100, 100, 100)) {
                         if (!(entity instanceof LivingEntity target) || target.equals(player) || !target.isOnGround()) continue;
                         if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
@@ -216,6 +226,8 @@ public final class SilenceAbilityListener implements Listener {
                     warden.setPersistent(true);
                     warden.customName(net.kyori.adventure.text.Component.text("Silence Soldier", net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA));
                 }
+                player.getWorld().spawnParticle(Particle.SONIC_BOOM, player.getLocation(), 4, 1, 1, 1, 0.02);
+                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 1.0f, 0.8f);
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_EMERGE, 1.5f, 1.0f);
                 player.sendMessage(ChatColor.DARK_AQUA + "Silence: Four Warden Soldiers have emerged.");
             }
