@@ -21,7 +21,7 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(protectionManager, this);
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
         getServer().getPluginManager().registerEvents(new ArtifactAbilityListener(this), this);
-        getServer().getPluginManager().registerEvents(new SilenceAbilityListener(this), this);\n        getServer().getPluginManager().registerEvents(new CollectionMenu(this), this);
+        getServer().getPluginManager().registerEvents(new SilenceAbilityListener(this), this);\n        CollectionMenu collectionMenu = new CollectionMenu(this);\n        getServer().getPluginManager().registerEvents(collectionMenu, this);\n        if (getCommand("artifacts") != null) getCommand("artifacts").setExecutor(collectionMenu);\n        if (getCommand("items") != null) getCommand("items").setExecutor(collectionMenu);
 
         PluginCommand command = getCommand("secrets");
         if (command == null) {
