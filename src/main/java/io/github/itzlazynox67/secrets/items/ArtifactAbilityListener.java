@@ -2,7 +2,6 @@ package io.github.itzlazynox67.secrets.items;
 
 import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -15,6 +14,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
+import org.bukkit.event.player.PlayerVelocityEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -27,6 +28,7 @@ public final class ArtifactAbilityListener implements Listener {
     private final Map<UUID, Long> blastforgeCooldowns = new HashMap<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
     private final Map<UUID, Long> phoenixCooldowns = new HashMap<>();
+    private final Map<UUID, Long> blastforgeStability = new HashMap<>();
 
     public ArtifactAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
@@ -129,6 +131,7 @@ public final class ArtifactAbilityListener implements Listener {
                 if (!ready(blastforgeCooldowns, player, 30000L)) return;
                 blastforgeCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 30000L);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
+                blastforgeStability.put(player.getUniqueId(), System.currentTimeMillis() + 4000L);
                 Location base = player.getEyeLocation();
                 Vector direction = base.getDirection().normalize();
                 for (int i = 2; i <= 6; i += 2) {
@@ -143,7 +146,7 @@ public final class ArtifactAbilityListener implements Listener {
                 event.setCancelled(true);
                 if (!ready(hellfireCooldowns, player, 30000L)) return;
                 hellfireCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 30000L);
-                Fireball fireball = player.getWorld().spawn(player.getEyeLocation().add(player.getLocation().getDirection()), Fireball.class);
+                Fireball fireball = player.launchProjectile(Fireball.class);
                 fireball.setDirection(player.getEyeLocation().getDirection());
                 fireball.setYield(5.0f);
                 fireball.setIsIncendiary(false);
@@ -152,6 +155,14 @@ public final class ArtifactAbilityListener implements Listener {
             }
             default -> { }
         }
+    }
+
+    @EventHandler
+    public void onBlastforgeKnockback(PlayerVelocityEvent event) {
+        Long until = blastforgeStability.get(event.getPlayer().getUniqueId());
+        if (until == null || System.currentTimeMillis() > until) return;
+        Vector velocity = event.getVelocity();
+        event.setVelocity(new Vector(0, Math.max(0, velocity.getY()), 0));
     }
 
     @EventHandler
