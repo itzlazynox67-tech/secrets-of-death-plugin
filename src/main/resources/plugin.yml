@@ -8,7 +8,7 @@ description: Secrets of Death and Destruction collectible items and book.
 commands:
   secrets:
     description: Secrets of Death item and book commands.
-    usage: /secrets <help|list|info|book|give|giveall|coords|version|reload>
+    usage: /secrets <help|list|info|book|give|giveall|coords|version|reload|protection>
     aliases: [sod]
 
 permissions:
