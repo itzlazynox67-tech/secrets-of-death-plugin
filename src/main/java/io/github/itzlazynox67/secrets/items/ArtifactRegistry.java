@@ -84,11 +84,15 @@ public final class ArtifactRegistry {
         ));
         meta.getPersistentDataContainer().set(artifactIdKey, PersistentDataType.STRING, definition.id());
 
-        NamespacedKey modelKey = NamespacedKey.fromString(definition.modelId());
-        if (modelKey != null) {
-            meta.setItemModel(modelKey);
-        } else {
-            plugin.getLogger().warning("Invalid model key for " + definition.id() + ": " + definition.modelId());
+        // Only the book and Death's Embrace use custom resource-pack models.
+        // All other artifacts keep their normal vanilla Minecraft item textures.
+        if (definition.id().equals("book") || definition.id().equals("deaths_embrace")) {
+            NamespacedKey modelKey = NamespacedKey.fromString(definition.modelId());
+            if (modelKey != null) {
+                meta.setItemModel(modelKey);
+            } else {
+                plugin.getLogger().warning("Invalid model key for " + definition.id() + ": " + definition.modelId());
+            }
         }
         item.setItemMeta(meta);
         ArtifactAbilityListener.applyEnchantments(item, definition.id());
