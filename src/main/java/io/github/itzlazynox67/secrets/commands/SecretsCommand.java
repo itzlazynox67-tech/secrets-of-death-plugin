@@ -161,7 +161,14 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "tnt" -> item = new ItemStack(org.bukkit.Material.TNT, 64);
             case "flint_and_steel" -> item = new ItemStack(org.bukkit.Material.FLINT_AND_STEEL, 1);
             case "fireworks" -> item = new ItemStack(org.bukkit.Material.FIREWORK_ROCKET, 64);
-            case "tnt_minecart" -> item = new ItemStack(org.bukkit.Material.TNT_MINECART, 64);
+            case "tnt_minecart" -> {
+                item = new ItemStack(org.bukkit.Material.TNT_MINECART, 64);
+                ItemMeta meta = item.getItemMeta();
+                if (meta != null) {
+                    meta.setMaxStackSize(64);
+                    item.setItemMeta(meta);
+                }
+            }
             case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 64);
             default -> {
                 ArtifactDefinition definition = registry.get(id);
