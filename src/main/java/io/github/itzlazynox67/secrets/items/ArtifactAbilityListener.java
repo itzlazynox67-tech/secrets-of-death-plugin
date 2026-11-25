@@ -99,11 +99,18 @@ public final class ArtifactAbilityListener implements Listener {
     public void protectBookHolderAndBoots(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         EntityDamageEvent.DamageCause cause = event.getCause();
-        if (cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION || cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
-            if ("book".equals(id(player.getInventory().getItemInMainHand())) || "book".equals(id(player.getInventory().getItemInOffHand()))) {
-                event.setCancelled(true);
-                return;
-            }
+        boolean explosiveDamage = cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION
+                || cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION;
+        boolean hasBook = hasItemAnywhere(player, "book");
+        boolean hasGiftProtection = plugin.getProtectionManager().isProtected(player);
+        if (explosiveDamage && (hasBook || hasGiftProtection)) {
+            event.setCancelled(true);
+            return;
+        }
+        // With either protection item active, nearby explosive threats grant full damage immunity.
+        if ((hasBook || hasGiftProtection) && nearExplosiveThreat(player)) {
+            event.setCancelled(true);
+            return;
         }
         if (cause == EntityDamageEvent.DamageCause.FALL && "death_boots".equals(id(player.getInventory().getBoots()))) {
             event.setCancelled(true);
