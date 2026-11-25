@@ -172,7 +172,7 @@ public final class ArtifactAbilityListener implements Listener {
                 Fireball fireball = player.launchProjectile(Fireball.class);
                 org.bukkit.util.Vector shotDirection = player.getEyeLocation().getDirection().normalize();
                 fireball.setDirection(shotDirection);
-                fireball.setVelocity(shotDirection.multiply(2.5));
+                fireball.setVelocity(shotDirection.multiply(6.0));
                 fireball.setYield(5.0f);
                 fireball.setIsIncendiary(false);
                 fireball.setShooter(player);
