@@ -3,6 +3,7 @@ package io.github.itzlazynox67.secrets;
 import io.github.itzlazynox67.secrets.commands.SecretsCommand;
 import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import io.github.itzlazynox67.secrets.items.ArtifactAbilityListener;
+import io.github.itzlazynox67.secrets.items.SilenceAbilityListener;
 import io.github.itzlazynox67.secrets.items.ExplosionProtectionManager;
 import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
 import org.bukkit.command.PluginCommand;
@@ -20,6 +21,7 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(protectionManager, this);
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
         getServer().getPluginManager().registerEvents(new ArtifactAbilityListener(this), this);
+        getServer().getPluginManager().registerEvents(new SilenceAbilityListener(this), this);
 
         PluginCommand command = getCommand("secrets");
         if (command == null) {
