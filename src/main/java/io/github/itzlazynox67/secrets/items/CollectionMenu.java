@@ -34,9 +34,9 @@ public final class CollectionMenu implements Listener, CommandExecutor {
 
     public void openArtifacts(Player player) {
         Inventory menu = Bukkit.createInventory(null, 27, ChatColor.DARK_AQUA + "Artifacts");
-        menu.setItem(10, entry(SecretsBookFactory.create(plugin, plugin.getArtifactRegistry().get("book")), "Secrets of Death", "The Secrets of Death collection book."));
+        menu.setItem(9, entry(SecretsBookFactory.create(plugin, plugin.getArtifactRegistry().get("book")), "Secrets of Death", "The Secrets of Death collection book."));
         menu.setItem(13, entry(plugin.getArtifactRegistry().createItem("silence"), "Silence", "A separate Warden-themed artifact."));
-        menu.setItem(16, entry(plugin.getArtifactRegistry().createItem("godswill"), "God's Will", "A separate storm-calling trident artifact."));
+        menu.setItem(17, entry(plugin.getArtifactRegistry().createItem("cycletation"), "Cycletation", "A two-page weather, time, and armor artifact book."));
         player.openInventory(menu);
     }
 
@@ -92,7 +92,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         }
         if (id == null) {
             int slot = event.getSlot();
-            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 10 ? "book" : slot == 13 ? "silence" : slot == 16 ? "godswill" : null;
+            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : null;
         }
         if (id == null) return;
         ItemStack reward;
@@ -102,6 +102,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         else if (id.equals("tnt_minecart")) reward = new ItemStack(Material.TNT_MINECART, 64);
         else if (id.equals("rails")) reward = new ItemStack(Material.RAIL, 64);
         else if (id.equals("book")) reward = SecretsBookFactory.create(plugin, plugin.getArtifactRegistry().get("book"));
+        else if (id.equals("cycletation")) reward = CycletationBookFactory.create(plugin, plugin.getArtifactRegistry().get("cycletation"));
         else reward = plugin.getArtifactRegistry().createItem(id);
         if (reward != null) {
             player.getInventory().addItem(reward).values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
