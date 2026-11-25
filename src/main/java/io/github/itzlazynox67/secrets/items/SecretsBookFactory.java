@@ -35,9 +35,9 @@ public final class SecretsBookFactory {
         // Page 1 — basic supplies, matching the original four-page reference.
         meta.addPages(page(
                 colored("TNT", NamedTextColor.LIGHT_PURPLE, "tnt"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Flint and Steel", NamedTextColor.BLACK, "flint_and_steel"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Fireworks", NamedTextColor.DARK_RED, "fireworks")
         ));
 
@@ -46,28 +46,28 @@ public final class SecretsBookFactory {
                 colored("Spear", NamedTextColor.DARK_PURPLE, "eclipse"),
                 line("                         "),
                 colored("Mace", NamedTextColor.DARK_RED, "deaths_embrace"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Death's Helmet", NamedTextColor.RED, "death_helmet"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Death's Chestplate", NamedTextColor.RED, "death_chestplate"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Death's Leggings", NamedTextColor.RED, "death_leggings"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Death's Boots", NamedTextColor.RED, "death_boots")
         ));
 
         // Page 3 — remaining collection entries in the exact reference order.
         meta.addPages(page(
                 colored("TNT Minecarts", NamedTextColor.LIGHT_PURPLE, "tnt_minecart"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Railroads", NamedTextColor.BLACK, "rails"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Blastforge Pickaxe", NamedTextColor.LIGHT_PURPLE, "blastforge"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Hellfire", NamedTextColor.AQUA, "hellfire"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Deadlock Axe", NamedTextColor.DARK_PURPLE, "deadlock"),
-                line("\\n\\n"),
+                line("\n\n"),
                 colored("Phoenix Wings", NamedTextColor.BLACK, "phoenix_wings")
         ));
 
@@ -75,11 +75,11 @@ public final class SecretsBookFactory {
         meta.addPages(page(
                 heading("Destination:"),
                 heading("Orbitals"),
-                line("\\n\\n"),
+                line("\n\n"),
                 heading("X: 9144211"),
                 heading("Y: -121"),
                 heading("Z: 3213121"),
-                line("\\n\\n"),
+                line("\n\n"),
                 clickableCommand("REVOKE", "/secrets revoke", "Open the protection revocation menu")
         ));
 
@@ -99,7 +99,7 @@ public final class SecretsBookFactory {
     }
 
     private static Component heading(String text) {
-        return Component.text(text, NamedTextColor.DARK_RED)
+        return Component.text(text, NamedTextColor.BLACK)
                 .decorate(TextDecoration.BOLD);
     }
 
