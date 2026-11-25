@@ -56,6 +56,8 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "protection" -> protection(sender, args);
             case "revoke" -> openRevokeMenu(sender);
             case "claim" -> claimItem(sender, args);
+            case "artifacts" -> openArtifacts(sender);
+            case "items" -> openItems(sender);
             default -> sendHelp(sender, label);
         }
         return true;
@@ -203,7 +205,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private void openRevokeMenu(CommandSender sender) {
+    private void openArtifacts(CommandSender sender) {\n        if (!(sender instanceof Player player)) { sender.sendMessage(msg("&cOnly players can open the artifact menu.")); return; }\n        new io.github.itzlazynox67.secrets.items.CollectionMenu(plugin).openArtifacts(player);\n    }\n\n    private void openItems(CommandSender sender) {\n        if (!(sender instanceof Player player)) { sender.sendMessage(msg("&cOnly players can open the items menu.")); return; }\n        new io.github.itzlazynox67.secrets.items.CollectionMenu(plugin).openItems(player);\n    }\n\n    private void openRevokeMenu(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(msg("&cOnly players can open the revoke menu."));
             return;
@@ -289,7 +291,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     private void sendHelp(CommandSender sender, String label) {
         sender.sendMessage(msg("&8&m--------------------------------"));
         sender.sendMessage(msg("&c&lSecrets of Death &7Commands"));
-        sender.sendMessage(msg("&f/" + label + " list &7- List collectible items"));
+        sender.sendMessage(msg("&f/" + label + " artifacts &7- Open the artifact collection"));\n        sender.sendMessage(msg("&f/" + label + " items &7- Open the regular items menu"));\n        sender.sendMessage(msg("&f/" + label + " list &7- List registered items"));
         sender.sendMessage(msg("&f/" + label + " info <item> &7- View item details"));
         sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
         sender.sendMessage(msg("&f/" + label + " coords &7- View book coordinates"));
@@ -309,7 +311,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                  @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "artifacts", "items"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
         }
