@@ -191,7 +191,7 @@ public final class ArtifactAbilityListener implements Listener {
                 event.setCancelled(true);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
                 blastforgeStability.put(player.getUniqueId(), System.currentTimeMillis() + 4000L);
-                player.getWorld().createExplosion(player.getLocation(), 10.0f, false, true, player);
+                player.getWorld().createExplosion(player.getLocation(), 5.0f, false, true, player);
                 player.sendMessage(ChatColor.GOLD + "Blastforge detonated!");
             }
             case "phoenix_wings" -> {
@@ -242,7 +242,7 @@ public final class ArtifactAbilityListener implements Listener {
         if (!ready(phoenixDashCooldowns, player, 5000L)) return;
         phoenixDashCooldowns.put(playerId, now + 5000L);
 
-        org.bukkit.util.Vector dash = player.getEyeLocation().getDirection().normalize().multiply(3.5);
+        org.bukkit.util.Vector dash = player.getEyeLocation().getDirection().normalize().multiply(4.5);
         player.setFallDistance(0);
         player.setVelocity(dash);
         Location trail = player.getLocation().add(0, 0.8, 0);
