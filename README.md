@@ -11,12 +11,21 @@ A starter Paper plugin for Minecraft Java 1.21.11. This ZIP is intended to be up
 - `/secrets coords` to view coordinates and `/secrets coords <world> <x> <y> <z>` to update them.
 - `/secrets list`, `/secrets info <item>`, `/secrets book`, `/secrets version`, `/secrets reload`.
 - Item-model component integration using the supplied `modeling:` item model identifiers.
+- Artifact abilities, enchantments, passive effects, and persistent explosion-protection grants.
 - Original resource pack plus independent placeholder models for collection items that did not yet have individual models.
 - GitHub Actions workflow to compile the plugin and upload the JAR as a workflow artifact.
 
-## Important scope note
+## Ability behavior
 
-This starter contains collectible item registration, commands, coordinate-book behavior, and resource-pack/model integration. It does **not** implement combat, attack, projectile, damage, stun, explosion, or other weapon-use abilities. Those are not active in this version.
+- Death's Embrace: on melee hit, emits its 15-block pulse for 40 damage with a 15-tick cooldown.
+- Eclipse: grants Saturation while held.
+- DeadLock: marks nearby living entities with Slowness II for 120 ticks; at the end, eligible targets within 7 blocks receive 7 damage and an explosion visual.
+- Blastforge: creates a forward line of short-fuse TNT, grants strong Resistance, and temporarily suppresses horizontal knockback.
+- Hellfire: right-click launches a direction-aimed fireball with power 5 and a 30-second cooldown.
+- Phoenix Wings: while wearing the custom Elytra, beginning to glide triggers the particle/sound effect and temporary Levitation.
+- Holding or wearing any collection artifact grants Strength I, Fire Resistance, and Speed II. Nearby Creepers, primed TNT, or End Crystals add Resistance.
+
+Explosion Protection Gift grants are saved in the plugin config when the token is given through the plugin command. The recipient is protected from explosion damage while the token remains in their inventory. The original player giver or an admin can revoke the grant with `/secrets protection revoke <player>`, even if the recipient is offline. Console-issued grants can be revoked by an admin.
 
 ## Requirements
 
@@ -49,6 +58,7 @@ Upload the **contents** of this folder to the root of your repository. Ensure `.
 | `/secrets giveall <player>` | `secrets.admin` | Give the full collectible set |
 | `/secrets coords <world> <x> <y> <z>` | `secrets.admin` | Change coordinates used in newly created books |
 | `/secrets reload` | `secrets.admin` | Reload config.yml |
+| `/secrets protection revoke <player>` | Original giver or `secrets.admin` | Revoke a protection grant, including for offline recipients |
 
 ## Item IDs
 
