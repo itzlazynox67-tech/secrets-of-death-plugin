@@ -68,7 +68,7 @@ public final class SecretsBookFactory {
                 line("\n\n"),
                 colored("Deadlock Axe", NamedTextColor.DARK_PURPLE, "deadlock"),
                 line("\n\n"),
-                colored("Phoenix Wings", NamedTextColor.BLACK, "phoenix_wings"),
+                colored("Phoenix Wings", NamedTextColor.BLACK, "phoenix_wings")
         ));
 
         // Page 4 — destination coordinates, plus the requested revoke-menu link.
