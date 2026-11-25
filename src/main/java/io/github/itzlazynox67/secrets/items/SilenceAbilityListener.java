@@ -36,6 +36,16 @@ public final class SilenceAbilityListener implements Listener {
         new BukkitRunnable() {
             @Override public void run() {
                 long now = System.currentTimeMillis();
+                for (World world : Bukkit.getWorlds()) {
+                    for (Entity entity : world.getEntities()) {
+                        if (entity instanceof Warden warden
+                                && warden.getTarget() instanceof Player target
+                                && hasSilence(target)) {
+                            warden.setTarget(null);
+                            warden.setAnger(0);
+                        }
+                    }
+                }
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (hasSilence(player)) {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1, true, false, true));
@@ -530,7 +540,11 @@ public final class SilenceAbilityListener implements Listener {
     public void protectSilenceHoldersFromWardens(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
         if (!(event.getEntity() instanceof Warden warden) || !(event.getTarget() instanceof Player target)) return;
         // Protect every Silence holder, not only the player who summoned a soldier.
-        if (hasSilence(target)) event.setCancelled(true);
+        if (hasSilence(target)) {
+            event.setCancelled(true);
+            warden.setTarget(null);
+            warden.setAnger(0);
+        }
     }
 
     @EventHandler
