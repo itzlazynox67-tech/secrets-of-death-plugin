@@ -34,9 +34,8 @@ public final class SilenceAbilityListener implements Listener {
                 long now = System.currentTimeMillis();
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (hasSilence(player)) {
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, true));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1, true, false, true));
                         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 60, 0, true, false, true));
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, true));
                         if (rampageEnds.getOrDefault(player.getUniqueId(), 0L) > now) {
                             player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 4, true, false, true));
@@ -94,7 +93,9 @@ public final class SilenceAbilityListener implements Listener {
         boolean lookingDown = pitch >= 65;
         boolean rampage = rampageEnds.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis();
 
-        if (rampage && crouch && !lookingUp && !lookingDown) {
+        if (rampage && crouch && lookingUp) {
+            endRampage(player);
+        } else if (rampage && crouch && !lookingUp && !lookingDown) {
             rampageDestroy(player);
         } else if (rampage && !crouch && lookingUp) {
             pull(player);
