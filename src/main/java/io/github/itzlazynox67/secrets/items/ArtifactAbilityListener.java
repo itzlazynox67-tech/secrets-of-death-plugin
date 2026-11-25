@@ -271,6 +271,22 @@ public final class ArtifactAbilityListener implements Listener {
         return true;
     }
 
+    public boolean resetCooldowns(Player player, String artifactId) {
+        UUID playerId = player.getUniqueId();
+        switch (artifactId.toLowerCase(Locale.ROOT)) {
+            case "deaths_embrace" -> pulseCooldowns.remove(playerId);
+            case "deadlock" -> deadlockCooldowns.remove(playerId);
+            case "hellfire" -> hellfireCooldowns.remove(playerId);
+            case "phoenix_wings" -> {
+                phoenixDashCooldowns.remove(playerId);
+                lastForwardPress.remove(playerId);
+                forwardHeld.remove(playerId);
+            }
+            default -> { return false; }
+        }
+        return true;
+    }
+
     public static void applyEnchantments(ItemStack item, String id) {
         if (item == null || !item.hasItemMeta()) return;
         ItemMeta meta = item.getItemMeta();
@@ -294,6 +310,18 @@ public final class ArtifactAbilityListener implements Listener {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 3, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 5, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.SMITE, 5, true);
+            }
+            case "silence" -> {
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.EFFICIENCY, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 3, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.MENDING, 1, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.FORTUNE, 3, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.FIRE_ASPECT, 2, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 3, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 2, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.SWEEPING_EDGE, 3, true);
+                meta.setUnbreakable(true);
             }
             case "blastforge" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.EFFICIENCY, 10, true);
