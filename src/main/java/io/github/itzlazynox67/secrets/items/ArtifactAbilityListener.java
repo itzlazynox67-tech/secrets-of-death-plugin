@@ -83,7 +83,8 @@ public final class ArtifactAbilityListener implements Listener {
                     }
                     if (hasItemAnywhere(player, "book")) {
                         Location ashCenter = player.getLocation().add(0, 0.15, 0);
-                        player.getWorld().spawnParticle(Particle.ASH, ashCenter, 12, 0.65, 0.35, 0.65, 0.01);
+                        player.getWorld().spawnParticle(Particle.DUST, ashCenter, 14, 0.65, 0.45, 0.65,
+                                new Particle.DustOptions(Color.BLACK, 1.35f));
                     }
                 }
             }
