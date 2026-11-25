@@ -2,7 +2,6 @@ package io.github.itzlazynox67.secrets.items;
 
 import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,7 +22,8 @@ public final class SilenceAbilityListener implements Listener {
     private final NamespacedKey artifactKey;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> rampageEnds = new HashMap<>();
-    private final Map<UUID, Double> previousScales = new HashMap<>();
+    private final Map<UUID, String> previousTeams = new HashMap<>();
+    private final Map<UUID, String> glowTeams = new HashMap<>();
     private final Set<UUID> groundSlamming = new HashSet<>();
 
     public SilenceAbilityListener(SecretsPlugin plugin) {
@@ -41,8 +41,8 @@ public final class SilenceAbilityListener implements Listener {
                             player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 4, true, false, true));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 1, true, false, true));
-                            var scale = player.getAttribute(Attribute.SCALE);
-                            if (scale != null && Math.abs(scale.getBaseValue() - 1.6) > 0.001) scale.setBaseValue(1.6);
+                            player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 60, 0, true, false, true));
+                            applyBlueGlow(player);
                         }
                     }
                     if (rampageEnds.containsKey(player.getUniqueId()) && rampageEnds.get(player.getUniqueId()) <= now) endRampage(player);
@@ -253,11 +253,8 @@ public final class SilenceAbilityListener implements Listener {
 
     private void activateRampage(Player player) {
         if (rampageEnds.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return;
-        var scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) {
-            previousScales.put(player.getUniqueId(), scale.getBaseValue());
-            scale.setBaseValue(1.6); // Warden-sized: approximately 2.9 blocks tall.
-        }
+        applyBlueGlow(player);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 320, 0, true, false, true));
         rampageEnds.put(player.getUniqueId(), System.currentTimeMillis() + 300_000L);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_ROAR, 1.5f, 0.7f);
         player.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, player.getLocation(), 180, 1, 1, 1, 0.1);
@@ -352,11 +349,48 @@ public final class SilenceAbilityListener implements Listener {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
+    private void applyBlueGlow(Player player) {
+        UUID id = player.getUniqueId();
+        org.bukkit.scoreboard.Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        String teamName = glowTeams.get(id);
+        org.bukkit.scoreboard.Team team = teamName == null ? null : board.getTeam(teamName);
+        if (team == null) {
+            teamName = "silence_rg_" + id.toString().replace("-", "").substring(0, 12);
+            team = board.getTeam(teamName);
+            if (team == null) team = board.registerNewTeam(teamName);
+            team.color(ChatColor.BLUE);
+            glowTeams.put(id, teamName);
+        }
+        org.bukkit.scoreboard.Team oldTeam = board.getEntryTeam(player.getName());
+        if (oldTeam != null && !oldTeam.getName().equals(team.getName())) {
+            previousTeams.putIfAbsent(id, oldTeam.getName());
+            oldTeam.removeEntry(player.getName());
+        }
+        team.addEntry(player.getName());
+    }
+
+    private void removeBlueGlow(Player player) {
+        UUID id = player.getUniqueId();
+        org.bukkit.scoreboard.Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        String teamName = glowTeams.remove(id);
+        if (teamName != null) {
+            org.bukkit.scoreboard.Team team = board.getTeam(teamName);
+            if (team != null) {
+                team.removeEntry(player.getName());
+                if (team.getEntries().isEmpty()) team.unregister();
+            }
+        }
+        String previousTeamName = previousTeams.remove(id);
+        if (previousTeamName != null) {
+            org.bukkit.scoreboard.Team previousTeam = board.getTeam(previousTeamName);
+            if (previousTeam != null) previousTeam.addEntry(player.getName());
+        }
+        player.removePotionEffect(PotionEffectType.GLOWING);
+    }
+
     private void endRampage(Player player) {
         rampageEnds.remove(player.getUniqueId());
-        Double previousScale = previousScales.remove(player.getUniqueId());
-        var scale = player.getAttribute(Attribute.SCALE);
-        if (scale != null) scale.setBaseValue(previousScale == null ? 1.0 : previousScale);
+        removeBlueGlow(player);
         player.sendMessage(ChatColor.DARK_RED + "Silence: Rampage has ended.");
     }
 
