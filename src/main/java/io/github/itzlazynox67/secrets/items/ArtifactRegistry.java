@@ -57,7 +57,16 @@ public final class ArtifactRegistry {
         ArtifactDefinition definition = get(id);
         if (definition == null) return null;
 
-        Material baseMaterial = definition.id().equals("book") ? Material.WRITTEN_BOOK : Material.PAPER;
+        Material baseMaterial = switch (definition.id()) {
+            case "book" -> Material.WRITTEN_BOOK;
+            case "phoenix_wings" -> Material.ELYTRA;
+            case "death_helmet" -> Material.NETHERITE_HELMET;
+            case "death_chestplate" -> Material.NETHERITE_CHESTPLATE;
+            case "death_leggings" -> Material.NETHERITE_LEGGINGS;
+            case "death_boots" -> Material.NETHERITE_BOOTS;
+            // Weapon-shaped collectibles are intentionally left unchanged here.
+            default -> Material.PAPER;
+        };
         ItemStack item = new ItemStack(baseMaterial);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
