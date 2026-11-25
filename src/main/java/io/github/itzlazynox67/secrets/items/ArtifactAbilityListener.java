@@ -28,7 +28,6 @@ public final class ArtifactAbilityListener implements Listener {
     private final NamespacedKey artifactKey;
     private final Map<UUID, Long> pulseCooldowns = new HashMap<>();
     private final Map<UUID, Long> deadlockCooldowns = new HashMap<>();
-    private final Map<UUID, Long> blastforgeCooldowns = new HashMap<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
     private final Map<UUID, Long> phoenixCooldowns = new HashMap<>();
     private final Map<UUID, Long> blastforgeStability = new HashMap<>();
@@ -147,11 +146,9 @@ public final class ArtifactAbilityListener implements Listener {
         switch (itemId) {
             case "blastforge" -> {
                 event.setCancelled(true);
-                if (!ready(blastforgeCooldowns, player, 30000L)) return;
-                blastforgeCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 30000L);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
                 blastforgeStability.put(player.getUniqueId(), System.currentTimeMillis() + 4000L);
-                player.getWorld().createExplosion(player.getLocation(), 12.0f, false, true, player);
+                player.getWorld().createExplosion(player.getLocation(), 16.0f, false, true, player);
                 player.sendMessage(ChatColor.GOLD + "Blastforge detonated!");
             }
             case "phoenix_wings" -> {
@@ -173,7 +170,7 @@ public final class ArtifactAbilityListener implements Listener {
                 org.bukkit.util.Vector shotDirection = player.getEyeLocation().getDirection().normalize();
                 fireball.setDirection(shotDirection);
                 fireball.setVelocity(shotDirection.multiply(6.0));
-                fireball.setYield(5.0f);
+                fireball.setYield(10.0f);
                 fireball.setIsIncendiary(false);
                 fireball.setShooter(player);
                 player.sendMessage(ChatColor.RED + "Hellfire launched!");
