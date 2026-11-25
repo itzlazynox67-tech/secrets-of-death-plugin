@@ -76,8 +76,11 @@ public final class ArtifactRegistry {
         if (meta == null) return item;
 
         String styledName = switch (definition.id()) {
-            case "phoenix_wings" -> "&7&o" + definition.displayName();
+            case "blastforge" -> "&x&E&9&1&5&3&4B̷l̷a̷s̷t̷f̷o̷r̷g̷e̷";
+            case "deadlock" -> "&x&D&8&5&B&5&0&l⌊ ᗪ乇卂ᗪㄥㄖ匚Ҝ ⌋";
+            case "phoenix_wings" -> "&x&A&B&A&B&A&B&l⟅ 𝒫𝒽𝑜𝑒𝓃𝒾𝓍 𝒲𝒾𝓃𝑔𝓈 ⟆";
             case "book" -> "&f&o" + definition.displayName();
+            case "deaths_embrace" -> "&c&lDeath's Embrace";
             default -> "&c&o" + definition.displayName();
         };
         meta.setDisplayName(color(styledName));
