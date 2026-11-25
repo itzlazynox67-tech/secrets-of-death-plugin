@@ -27,6 +27,7 @@ public final class SilenceAbilityListener implements Listener {
     private final Map<UUID, String> glowTeams = new HashMap<>();
     private final Set<UUID> groundSlamming = new HashSet<>();
     private final Map<UUID, DomainTrap> sculkDomainTraps = new HashMap<>();
+    private final List<DomainTrap> activeDomains = new ArrayList<>();
 
     private record DomainTrap(Location center, long expiresAt) {}
 
@@ -42,7 +43,6 @@ public final class SilenceAbilityListener implements Listener {
                                 && warden.getTarget() instanceof Player target
                                 && hasSilence(target)) {
                             warden.setTarget(null);
-                            warden.setAnger(0);
                         }
                     }
                 }
@@ -165,11 +165,11 @@ public final class SilenceAbilityListener implements Listener {
                             if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
                             target.damage(14.0, player);
                         }
-                        step++;
+                        step += 2;
                     }
                 }.runTaskTimer(plugin, 0L, 1L);
             }
-        }.runTaskLater(plugin, 20L);
+        }.runTaskLater(plugin, 5L);
         player.sendMessage(ChatColor.DARK_AQUA + "Silence: Sonic Beam fired.");
     }
 
@@ -195,6 +195,7 @@ public final class SilenceAbilityListener implements Listener {
         if (!ready(player, "Sensory Overload", 900_000L)) return;
         Location center = player.getLocation().clone();
         long expiresAt = System.currentTimeMillis() + 60_000L;
+        activeDomains.add(new DomainTrap(center.clone(), expiresAt));
 
         // Empower the wielder throughout the one-minute domain.
         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 1200, 3, true, false, true));
@@ -225,6 +226,7 @@ public final class SilenceAbilityListener implements Listener {
             @Override public void run() {
                 if (System.currentTimeMillis() >= expiresAt || !player.isOnline()) {
                     sculkDomainTraps.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= System.currentTimeMillis());
+                    activeDomains.removeIf(domain -> domain.expiresAt() <= System.currentTimeMillis());
                     cancel();
                     center.getWorld().playSound(center, Sound.BLOCK_SCULK_SHRIEKER_SHRIEK, 1.2f, 0.8f);
                     center.getWorld().spawnParticle(Particle.SCULK_SOUL, center, 500, 30, 12, 30, 0.04);
@@ -436,9 +438,14 @@ public final class SilenceAbilityListener implements Listener {
         Location destination = player.getLocation();
         int moved = 0;
         for (Entity entity : player.getNearbyEntities(500, 500, 500)) {
-            if (entity instanceof LivingEntity target && !target.equals(player)) {
-                if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                target.teleport(destination);
+            if (entity.equals(player)) continue;
+            if (entity instanceof Player victim) {
+                if (plugin.getProtectionManager().isProtected(victim)) continue;
+                victim.teleport(destination);
+                moved++;
+            } else if (entity instanceof Warden warden) {
+                warden.teleport(destination);
+                warden.setTarget(null);
                 moved++;
             }
         }
@@ -536,6 +543,32 @@ public final class SilenceAbilityListener implements Listener {
     }
 
 
+    private boolean isInsideActiveDomain(Location location) {
+        long now = System.currentTimeMillis();
+        activeDomains.removeIf(domain -> domain.expiresAt() <= now);
+        for (DomainTrap domain : activeDomains) {
+            Location center = domain.center();
+            if (location.getWorld() == center.getWorld()
+                    && location.distanceSquared(center) <= 900.0) return true;
+        }
+        return false;
+    }
+
+    @EventHandler
+    public void preventDomainBlockBreaking(org.bukkit.event.block.BlockBreakEvent event) {
+        if (isInsideActiveDomain(event.getBlock().getLocation())) event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void preventDomainBlockExplosions(org.bukkit.event.block.BlockExplodeEvent event) {
+        event.blockList().removeIf(block -> isInsideActiveDomain(block.getLocation()));
+    }
+
+    @EventHandler
+    public void preventDomainEntityExplosions(org.bukkit.event.entity.EntityExplodeEvent event) {
+        event.blockList().removeIf(block -> isInsideActiveDomain(block.getLocation()));
+    }
+
     @EventHandler
     public void protectSilenceHoldersFromWardens(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
         if (!(event.getEntity() instanceof Warden warden) || !(event.getTarget() instanceof Player target)) return;
@@ -543,7 +576,6 @@ public final class SilenceAbilityListener implements Listener {
         if (hasSilence(target)) {
             event.setCancelled(true);
             warden.setTarget(null);
-            warden.setAnger(0);
         }
     }
 
