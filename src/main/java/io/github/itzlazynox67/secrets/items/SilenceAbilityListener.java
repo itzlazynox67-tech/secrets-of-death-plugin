@@ -25,6 +25,9 @@ public final class SilenceAbilityListener implements Listener {
     private final Map<UUID, String> previousTeams = new HashMap<>();
     private final Map<UUID, String> glowTeams = new HashMap<>();
     private final Set<UUID> groundSlamming = new HashSet<>();
+    private final Map<UUID, DomainTrap> sculkDomainTraps = new HashMap<>();
+
+    private record DomainTrap(Location center, long expiresAt) {}
 
     public SilenceAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
@@ -113,12 +116,13 @@ public final class SilenceAbilityListener implements Listener {
         } else if (!rampage && !crouch && lookingUp) {
             sensoryOverload(player);
         } else {
-            sonicBeam(player);
+            sonicBeam(player, rampage);
         }
     }
 
-    private void sonicBeam(Player player) {
-        if (!ready(player, "Sonic Beam", 120_000L)) return;
+    private void sonicBeam(Player player, boolean rampage) {
+        long cooldown = rampage ? 20_000L : 120_000L;
+        if (!ready(player, "Sonic Beam", cooldown)) return;
         Location eye = player.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
         // Warden-style wind-up: charge first, then the sonic boom, then the travelling beam.
@@ -175,23 +179,89 @@ public final class SilenceAbilityListener implements Listener {
 
     private void sensoryOverload(Player player) {
         if (!ready(player, "Sensory Overload", 900_000L)) return;
-        Location center = player.getLocation();
-        center.getWorld().playSound(center, Sound.ENTITY_WARDEN_ROAR, 1.2f, 0.8f);
-        burst(center, 600);
-        for (Entity entity : player.getNearbyEntities(50, 50, 50)) {
-            if (!(entity instanceof Player target) || target.equals(player)) continue;
-            if (plugin.getProtectionManager().isProtected(target)) continue;
-            new BukkitRunnable() {
-                int ticks = 0;
-                @Override public void run() {
-                    if (!target.isOnline() || ticks >= 300) { cancel(); return; }
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 45, 0, true, false, true));
-                    target.sendActionBar(net.kyori.adventure.text.Component.text("You are overwhelmed by Silence", net.kyori.adventure.text.format.NamedTextColor.DARK_BLUE));
-                    ticks++;
-                }
-            }.runTaskTimer(plugin, 0L, 1L);
+        Location center = player.getLocation().clone();
+        long expiresAt = System.currentTimeMillis() + 60_000L;
+
+        // Empower the wielder throughout the one-minute domain.
+        player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 1200, 3, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 1200, 1, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 1200, 1, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 1200, 0, true, false, true));
+
+        center.getWorld().playSound(center, Sound.ENTITY_WARDEN_ROAR, 1.6f, 0.65f);
+        center.getWorld().playSound(center, Sound.BLOCK_SCULK_CATALYST_BLOOM, 1.4f, 0.7f);
+        burst(center, 1200);
+
+        for (Entity entity : center.getWorld().getNearbyEntities(center, 30, 30, 30)) {
+            if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
+            if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
+            sculkDomainTraps.put(target.getUniqueId(), new DomainTrap(center.clone(), expiresAt));
+            target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 1200, 0, true, false, true));
+            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 1200, 1, true, false, true));
+            target.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 1200, 0, true, false, true));
+            if (target instanceof Player trapped) {
+                trapped.sendMessage(ChatColor.DARK_AQUA + "You have been sealed inside Silence's Sculk Domain for 1 minute.");
+            }
         }
-        player.sendMessage(ChatColor.DARK_AQUA + "Silence: Sensory Overload.");
+
+        player.sendMessage(ChatColor.DARK_AQUA + "Silence: SCULK DOMAIN — nearby foes are sealed for 1 minute!");
+        new BukkitRunnable() {
+            int ticks = 0;
+            @Override public void run() {
+                if (System.currentTimeMillis() >= expiresAt || !player.isOnline()) {
+                    sculkDomainTraps.entrySet().removeIf(entry -> entry.getValue().expiresAt() <= System.currentTimeMillis());
+                    cancel();
+                    center.getWorld().playSound(center, Sound.BLOCK_SCULK_SHRIEKER_SHRIEK, 1.2f, 0.8f);
+                    center.getWorld().spawnParticle(Particle.SCULK_SOUL, center, 500, 30, 12, 30, 0.04);
+                    return;
+                }
+
+                // Particle shell: a visible spherical sculk boundary, without changing blocks.
+                if (ticks % 5 == 0) {
+                    for (int i = 0; i < 48; i++) {
+                        double angle = Math.PI * 2 * i / 48.0;
+                        for (int ring = 0; ring < 5; ring++) {
+                            double y = -12 + ring * 6;
+                            double horizontal = Math.sqrt(Math.max(0, 1 - y * y / 900.0)) * 30.0;
+                            Location point = center.clone().add(Math.cos(angle) * horizontal, y, Math.sin(angle) * horizontal);
+                            center.getWorld().spawnParticle(Particle.SCULK_SOUL, point, 2, 0.12, 0.12, 0.12, 0.01);
+                            center.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, point, 1, 0, 0, 0, 0);
+                        }
+                    }
+                }
+
+                // Return captured entities to the inner edge if they try to leave or teleport away.
+                Iterator<Map.Entry<UUID, DomainTrap>> iterator = sculkDomainTraps.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<UUID, DomainTrap> entry = iterator.next();
+                    DomainTrap trap = entry.getValue();
+                    if (System.currentTimeMillis() >= trap.expiresAt()) {
+                        iterator.remove();
+                        continue;
+                    }
+                    Entity trapped = Bukkit.getEntity(entry.getKey());
+                    if (trapped == null || !trapped.isValid() || trapped.isDead()) {
+                        iterator.remove();
+                        continue;
+                    }
+                    Location origin = trap.center();
+                    Location current = trapped.getLocation();
+                    if (current.getWorld() != origin.getWorld()) {
+                        trapped.teleport(origin);
+                        continue;
+                    }
+                    Vector offset = current.toVector().subtract(origin.toVector());
+                    if (offset.lengthSquared() > 29.5 * 29.5) {
+                        Location inside = origin.clone().add(offset.normalize().multiply(29.0));
+                        inside.setYaw(current.getYaw());
+                        inside.setPitch(current.getPitch());
+                        trapped.teleport(inside);
+                        trapped.setVelocity(new Vector(0, Math.min(0, trapped.getVelocity().getY()), 0));
+                    }
+                }
+                ticks++;
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private void groundSlam(Player player) {
