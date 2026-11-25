@@ -11,7 +11,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public final class SecretsBookFactory {
@@ -23,14 +22,13 @@ public final class SecretsBookFactory {
         if (meta == null) return item;
 
         String title = plugin.getConfig().getString("book.title", "Secrets of Death and Destruction");
-        String author = plugin.getConfig().getString("book.author", "Unknown");
         String world = plugin.getConfig().getString("book.last-page-coordinate.world", "world");
         int x = plugin.getConfig().getInt("book.last-page-coordinate.x", 0);
         int y = plugin.getConfig().getInt("book.last-page-coordinate.y", 80);
         int z = plugin.getConfig().getInt("book.last-page-coordinate.z", 0);
 
         meta.setTitle(title);
-        meta.setAuthor(author);
+        meta.setAuthor("Death");
 
         // Page 1 — basic supplies, matching the original four-page reference.
         meta.addPages(page(
@@ -108,7 +106,6 @@ public final class SecretsBookFactory {
     private static Component line(String text) {
         return Component.text(text, NamedTextColor.BLACK);
     }
-
 
     private static Component colored(String label, NamedTextColor color, String itemId) {
         return Component.text(label, color)
