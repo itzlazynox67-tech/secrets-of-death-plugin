@@ -50,7 +50,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "reload" -> reload(sender);
             case "book" -> giveBookToSelf(sender);
             case "protection" -> protection(sender, args);
-            case "revoke" -> openRevokeMenu(sender);
+            case "revoke" -> openRevokeMenu(sender);\n            case "claim" -> claimItem(sender, args);
             default -> sendHelp(sender, label);
         }
         return true;
@@ -126,6 +126,36 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&aGave the collectible set to &f" + target.getName() + "&a."));
     }
 
+
+    private void claimItem(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(msg("&cOnly players can claim items from the book."));
+            return;
+        }
+        if (args.length != 2) {
+            player.sendMessage(msg("&cUsage: /secrets claim <item>"));
+            return;
+        }
+        String id = args[1].toLowerCase(Locale.ROOT);
+        ItemStack item;
+        switch (id) {
+            case "tnt" -> item = new ItemStack(org.bukkit.Material.TNT, 1);
+            case "flint_and_steel" -> item = new ItemStack(org.bukkit.Material.FLINT_AND_STEEL, 1);
+            case "fireworks" -> item = new ItemStack(org.bukkit.Material.FIREWORK_ROCKET, 1);
+            case "tnt_minecart" -> item = new ItemStack(org.bukkit.Material.TNT_MINECART, 1);
+            case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 16);
+            default -> {
+                ArtifactDefinition definition = registry.get(id);
+                if (definition == null || id.equals("book") || id.equals("explosion_gift")) {
+                    player.sendMessage(msg("&cThat book entry cannot be claimed."));
+                    return;
+                }
+                item = registry.createItem(id);
+            }
+        }
+        giveOrDrop(player, item);
+        player.sendMessage(msg("&aClaimed &f" + id.replace('_', ' ') + "&a."));
+    }
 
     private void openRevokeMenu(CommandSender sender) {
         if (!(sender instanceof Player player)) {
