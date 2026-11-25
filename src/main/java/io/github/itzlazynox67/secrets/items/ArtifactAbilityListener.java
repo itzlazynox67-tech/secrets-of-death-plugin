@@ -168,6 +168,7 @@ public final class ArtifactAbilityListener implements Listener {
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
         Location center = player.getLocation();
+        player.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
         player.getWorld().spawnParticle(Particle.DUST, center, 48, 3.0, 1.5, 3.0,
                 new Particle.DustOptions(Color.RED, 1.8f));
         player.getWorld().spawnParticle(Particle.SMOKE, center, 24, 3.0, 1.5, 3.0, 0.08);
