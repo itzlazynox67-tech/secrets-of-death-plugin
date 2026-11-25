@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -42,7 +43,10 @@ public final class ExplosionProtectionManager implements Listener {
         plugin.saveConfig();
         sender.sendMessage(ChatColor.GREEN + "Explosion protection revoked for " + recipientName + ".");
         Player online = plugin.getServer().getPlayer(recipientId);
-        if (online != null) online.sendMessage(ChatColor.RED + "Your explosion protection was revoked.");
+        if (online != null) {
+            removeGiftItems(online);
+            online.sendMessage(ChatColor.RED + "Your explosion protection was revoked and the gift was removed.");
+        }
         return true;
     }
 
@@ -82,6 +86,30 @@ public final class ExplosionProtectionManager implements Listener {
     public boolean isProtected(Player player) {
         return plugin.getConfig().getString("protection.grants." + player.getUniqueId()) != null
                 && hasProtectionToken(player);
+    }
+
+
+    @EventHandler
+    public void removeRevokedGiftOnJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (plugin.getConfig().getString("protection.grants." + player.getUniqueId()) == null) {
+            removeGiftItems(player);
+        }
+    }
+
+    private void removeGiftItems(Player player) {
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack item = contents[slot];
+            if (item == null || !item.hasItemMeta()) continue;
+            String id = item.getItemMeta().getPersistentDataContainer().get(artifactKey, PersistentDataType.STRING);
+            if ("explosion_gift".equals(id)) player.getInventory().setItem(slot, null);
+        }
+        ItemStack offhand = player.getInventory().getItemInOffHand();
+        if (offhand.hasItemMeta()) {
+            String id = offhand.getItemMeta().getPersistentDataContainer().get(artifactKey, PersistentDataType.STRING);
+            if ("explosion_gift".equals(id)) player.getInventory().setItemInOffHand(null);
+        }
     }
 
     @EventHandler
