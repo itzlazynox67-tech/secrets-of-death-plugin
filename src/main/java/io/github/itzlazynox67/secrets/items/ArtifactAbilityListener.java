@@ -44,9 +44,23 @@ public final class ArtifactAbilityListener implements Listener {
     }
 
     private boolean hasArtifact(Player player) {
-        if (id(player.getInventory().getItemInMainHand()) != null || id(player.getInventory().getItemInOffHand()) != null) return true;
-        for (ItemStack armor : player.getInventory().getArmorContents()) if (id(armor) != null) return true;
-        return false;
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (id(item) != null) return true;
+        }
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (id(armor) != null) return true;
+        }
+        return id(player.getInventory().getItemInOffHand()) != null;
+    }
+
+    private boolean hasItemAnywhere(Player player, String artifactId) {
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (artifactId.equals(id(item))) return true;
+        }
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (artifactId.equals(id(armor))) return true;
+        }
+        return artifactId.equals(id(player.getInventory().getItemInOffHand()));
     }
 
     private void startPassiveTask() {
@@ -64,7 +78,7 @@ public final class ArtifactAbilityListener implements Listener {
                             || "eclipse".equals(id(player.getInventory().getItemInOffHand()))) {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 60, 0, true, false, false));
                     }
-                    if ("book".equals(id(player.getInventory().getItemInMainHand())) || "book".equals(id(player.getInventory().getItemInOffHand()))) {
+                    if (hasItemAnywhere(player, "book")) {
                         Location ashCenter = player.getLocation().add(0, 0.15, 0);
                         player.getWorld().spawnParticle(Particle.ASH, ashCenter, 12, 0.65, 0.35, 0.65, 0.01);
                     }
@@ -74,8 +88,11 @@ public final class ArtifactAbilityListener implements Listener {
     }
 
     private boolean nearExplosiveThreat(Player player) {
-        return !player.getNearbyEntities(10, 6, 10).stream().noneMatch(entity ->
-                entity instanceof Creeper || entity instanceof TNTPrimed || entity instanceof EnderCrystal);
+        for (Entity entity : player.getNearbyEntities(10, 6, 10)) {
+            if (entity instanceof Creeper || entity instanceof TNTPrimed
+                    || entity instanceof EnderCrystal || entity instanceof TNTMinecart) return true;
+        }
+        return false;
     }
 
     @EventHandler
@@ -105,9 +122,12 @@ public final class ArtifactAbilityListener implements Listener {
                 Location center = hitTarget.getLocation();
                 int locked = 0;
                 List<LivingEntity> targets = new ArrayList<>();
+                Set<UUID> targetIds = new HashSet<>();
                 targets.add(hitTarget);
+                targetIds.add(hitTarget.getUniqueId());
                 for (Entity nearby : hitTarget.getNearbyEntities(10, 5, 10)) {
-                    if (nearby instanceof LivingEntity target && !target.equals(player) && !targets.contains(target)) targets.add(target);
+                    if (nearby instanceof LivingEntity target && !target.equals(player)
+                            && targetIds.add(target.getUniqueId())) targets.add(target);
                 }
                 for (LivingEntity target : targets) {
                     target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
@@ -125,13 +145,13 @@ public final class ArtifactAbilityListener implements Listener {
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
         Location center = player.getLocation();
-        player.getWorld().spawnParticle(Particle.DUST, center, 180, 3.0, 1.5, 3.0,
+        player.getWorld().spawnParticle(Particle.DUST, center, 48, 3.0, 1.5, 3.0,
                 new Particle.DustOptions(Color.RED, 1.8f));
-        player.getWorld().spawnParticle(Particle.SMOKE, center, 90, 3.0, 1.5, 3.0, 0.08);
+        player.getWorld().spawnParticle(Particle.SMOKE, center, 24, 3.0, 1.5, 3.0, 0.08);
         for (Entity entity : player.getNearbyEntities(15, 15, 15)) {
             if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
             if (target.getLocation().distanceSquared(center) > 225) continue;
-            target.damage(40.0, player);
+            target.damage(20.0, player);
         }
     }
 
