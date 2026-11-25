@@ -70,15 +70,18 @@ public final class ExplosionProtectionManager implements Listener {
         return new java.util.ArrayList<>(getGrantsFor(viewer).keySet());
     }
 
-    public boolean isProtected(Player player) {
-        String owner = plugin.getConfig().getString("protection.grants." + player.getUniqueId());
-        if (owner == null) return false;
+    public boolean hasProtectionToken(Player player) {
         for (ItemStack item : player.getInventory().getContents()) {
             if (item == null || !item.hasItemMeta()) continue;
             String id = item.getItemMeta().getPersistentDataContainer().get(artifactKey, PersistentDataType.STRING);
             if ("explosion_gift".equals(id)) return true;
         }
         return false;
+    }
+
+    public boolean isProtected(Player player) {
+        return plugin.getConfig().getString("protection.grants." + player.getUniqueId()) != null
+                && hasProtectionToken(player);
     }
 
     @EventHandler
