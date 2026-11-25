@@ -50,7 +50,8 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "reload" -> reload(sender);
             case "book" -> giveBookToSelf(sender);
             case "protection" -> protection(sender, args);
-            case "revoke" -> openRevokeMenu(sender);\n            case "claim" -> claimItem(sender, args);
+            case "revoke" -> openRevokeMenu(sender);
+            case "claim" -> claimItem(sender, args);
             default -> sendHelp(sender, label);
         }
         return true;
