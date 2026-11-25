@@ -78,7 +78,8 @@ public final class SecretsBookFactory {
                 line("X: " + x + "\n"),
                 line("Y: " + y + "\n"),
                 line("Z: " + z + "\n\n"),
-                line("Coordinates can be changed by an administrator with /secrets coords.")
+                line("Coordinates can be changed by an administrator with /secrets coords.\\n\\n"),
+                clickableCommand("REVOKE PROTECTION", "/secrets revoke", "Open the protection revocation menu")
         ));
 
         meta.getPersistentDataContainer().set(
@@ -103,6 +104,15 @@ public final class SecretsBookFactory {
 
     private static Component line(String text) {
         return Component.text(text, NamedTextColor.BLACK);
+    }
+
+
+    private static Component clickableCommand(String label, String command, String hover) {
+        return Component.text(label, NamedTextColor.RED)
+                .decorate(TextDecoration.BOLD)
+                .decorate(TextDecoration.UNDERLINED)
+                .clickEvent(ClickEvent.runCommand(command))
+                .hoverEvent(Component.text(hover, NamedTextColor.GRAY));
     }
 
     // Book clicks safely open the matching artifact's information page.
