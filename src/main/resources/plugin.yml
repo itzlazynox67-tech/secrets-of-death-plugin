@@ -10,11 +10,23 @@ commands:
     description: Secrets of Death item and book commands.
     usage: /secrets <help|list|info|book|claim|give|giveall|coords|version|reload|protection|revoke>
     aliases: [sod]
+    permission: secrets.op
+  artifacts:
+    description: Open the artifact collection menu.
+    usage: /artifacts
+    permission: secrets.op
+  items:
+    description: Open the regular items menu.
+    usage: /items
+    permission: secrets.op
 
 permissions:
+  secrets.op:
+    description: Allows server operators to use all Secrets commands.
+    default: op
   secrets.use:
     description: Allows use of basic Secrets commands.
-    default: true
+    default: op
   secrets.admin:
-    description: Allows giving items and changing settings.
+    description: Allows administrative Secrets actions.
     default: op
