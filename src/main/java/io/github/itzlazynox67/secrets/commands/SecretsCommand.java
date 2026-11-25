@@ -152,6 +152,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         if (id.equals("explosion_gift")) {
             ItemStack gift = registry.createItem("explosion_gift");
             giveOrDrop(player, gift);
+            playClaimEffects(player);
             plugin.getProtectionManager().grant(player, player);
             player.sendMessage(msg("&aYou received the Explosion Protection Gift. Keep it in your inventory for protection."));
             return;
@@ -181,7 +182,22 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             }
         }
         giveOrDrop(player, item);
+        playClaimEffects(player);
         player.sendMessage(msg("&aClaimed &f" + id.replace('_', ' ') + "&a."));
+    }
+
+    // Matches the reward effects used by POVS_V2's item *_run functions.
+    private void playClaimEffects(Player player) {
+        Location origin = player.getLocation();
+        Particle.DustTransition redToBlack = new Particle.DustTransition(Color.RED, Color.BLACK, 1.0f);
+        player.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, origin.clone().add(0, 1, 0),
+                1000, 5, 5, 5, 0.5, redToBlack);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, origin,
+                1000, 1, 1, 1, 1);
+
+        for (Player listener : player.getWorld().getNearbyPlayers(origin, 25)) {
+            listener.playSound(origin, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
+        }
     }
 
     private void openRevokeMenu(CommandSender sender) {
