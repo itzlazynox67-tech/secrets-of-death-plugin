@@ -10,6 +10,10 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.ArmorMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -90,7 +94,7 @@ public final class ArtifactAbilityListener implements Listener {
                     target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 30,
                             0.4, 0.8, 0.4, new Particle.DustOptions(Color.RED, 1.8f));
                     if (target instanceof Player victim) victim.sendMessage(ChatColor.DARK_RED + "DeadLock has locked you!");
-                    target.damage(7.0, player);
+                    target.damage(7.0);
                     locked++;
                 }
                 player.sendMessage(ChatColor.RED + "DeadLock locked " + locked + " target(s) in the 10-block area.");
@@ -223,6 +227,9 @@ public final class ArtifactAbilityListener implements Listener {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 5, true);
             }
             default -> { }
+        }
+        if (id.startsWith("death_") && meta instanceof ArmorMeta armorMeta) {
+            armorMeta.setTrim(new ArmorTrim(TrimMaterial.NETHERITE, TrimPattern.SILENCE));
         }
         item.setItemMeta(meta);
     }
