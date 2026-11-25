@@ -162,7 +162,7 @@ public final class ArtifactAbilityListener implements Listener {
         Long until = blastforgeStability.get(event.getPlayer().getUniqueId());
         if (until == null || System.currentTimeMillis() > until) return;
         Vector velocity = event.getVelocity();
-        event.setVelocity(new Vector(0, Math.max(0, velocity.getY()), 0));
+        event.setVelocity(new org.bukkit.util.Vector(0, Math.max(0, velocity.getY()), 0));
     }
 
     @EventHandler
