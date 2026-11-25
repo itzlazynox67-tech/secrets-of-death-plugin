@@ -80,7 +80,7 @@ public final class ArtifactRegistry {
             case "deadlock" -> "&x&D&8&5&B&5&0&l⌊ ᗪ乇卂ᗪㄥㄖ匚Ҝ ⌋";
             case "phoenix_wings" -> "&x&A&B&A&B&A&B&l⟅ 𝒫𝒽𝑜𝑒𝓃𝒾𝓍 𝒲𝒾𝓃𝑔𝓈 ⟆";
             case "book" -> "&f&o" + definition.displayName();
-            case "deaths_embrace" -> "&c&lDeath's Embrace";
+            case "deaths_embrace" -> "&4&lDeath's &0&lEmbrace";
             default -> "&c&o" + definition.displayName();
         };
         meta.setDisplayName(color(styledName));
