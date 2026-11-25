@@ -51,7 +51,12 @@ public final class ProtectionRevokeMenu implements Listener {
                 meta.setOwningPlayer(recipient);
                 meta.setDisplayName(ChatColor.RED + name);
                 List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.GRAY + (recipient.isOnline() ? "Online" : "Offline"));
+                if (recipient.isOnline()) {
+                    boolean holding = plugin.getProtectionManager().hasProtectionToken(recipient.getPlayer());
+                    lore.add(ChatColor.GRAY + (holding ? "Online - holding token" : "Online - token not in inventory"));
+                } else {
+                    lore.add(ChatColor.GRAY + "Offline - token status unknown");
+                }
                 lore.add(ChatColor.YELLOW + "Click to revoke protection");
                 meta.setLore(lore);
                 head.setItemMeta(meta);
