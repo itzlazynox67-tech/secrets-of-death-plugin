@@ -42,7 +42,7 @@ public final class SecretsPlugin extends JavaPlugin {
         SecretsCommand handler = new SecretsCommand(this, artifactRegistry);
         command.setExecutor(handler);
         command.setTabCompleter(handler);
-        getLogger().info("SecretsOfDeath enabled. Registered " + artifactRegistry.getDefinitions().size() + " collectible items.");
+        getLogger().info("Artifacts enabled. Registered " + artifactRegistry.getDefinitions().size() + " collectible items.");
     }
 
     public boolean resetArtifactCooldowns(org.bukkit.entity.Player player, String artifactId) {
