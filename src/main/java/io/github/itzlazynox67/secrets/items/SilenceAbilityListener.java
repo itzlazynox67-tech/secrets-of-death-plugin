@@ -23,6 +23,7 @@ public final class SilenceAbilityListener implements Listener {
     private final NamespacedKey artifactKey;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> rampageEnds = new HashMap<>();
+    private final Map<UUID, Double> previousScales = new HashMap<>();
     private final Set<UUID> groundSlamming = new HashSet<>();
 
     public SilenceAbilityListener(SecretsPlugin plugin) {
@@ -40,6 +41,8 @@ public final class SilenceAbilityListener implements Listener {
                             player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 4, true, false, true));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 1, true, false, true));
+                            var scale = player.getAttribute(Attribute.SCALE);
+                            if (scale != null && Math.abs(scale.getBaseValue() - 1.6) > 0.001) scale.setBaseValue(1.6);
                         }
                     }
                     if (rampageEnds.containsKey(player.getUniqueId()) && rampageEnds.get(player.getUniqueId()) <= now) endRampage(player);
@@ -250,6 +253,11 @@ public final class SilenceAbilityListener implements Listener {
 
     private void activateRampage(Player player) {
         if (rampageEnds.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return;
+        var scale = player.getAttribute(Attribute.SCALE);
+        if (scale != null) {
+            previousScales.put(player.getUniqueId(), scale.getBaseValue());
+            scale.setBaseValue(1.6); // Warden-sized: approximately 2.9 blocks tall.
+        }
         rampageEnds.put(player.getUniqueId(), System.currentTimeMillis() + 300_000L);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_ROAR, 1.5f, 0.7f);
         player.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, player.getLocation(), 180, 1, 1, 1, 0.1);
@@ -346,6 +354,9 @@ public final class SilenceAbilityListener implements Listener {
 
     private void endRampage(Player player) {
         rampageEnds.remove(player.getUniqueId());
+        Double previousScale = previousScales.remove(player.getUniqueId());
+        var scale = player.getAttribute(Attribute.SCALE);
+        if (scale != null) scale.setBaseValue(previousScale == null ? 1.0 : previousScale);
         player.sendMessage(ChatColor.DARK_RED + "Silence: Rampage has ended.");
     }
 
@@ -357,11 +368,10 @@ public final class SilenceAbilityListener implements Listener {
 
 
     @EventHandler
-    public void protectSilenceSoldiersFromOwner(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
+    public void protectSilenceHoldersFromWardens(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
         if (!(event.getEntity() instanceof Warden warden) || !(event.getTarget() instanceof Player target)) return;
-        String ownerId = warden.getPersistentDataContainer().get(
-                new NamespacedKey(plugin, "silence_soldier_owner"), PersistentDataType.STRING);
-        if (ownerId != null && ownerId.equals(target.getUniqueId().toString())) {
+        // Protect every Silence holder, not only the player who summoned a soldier.
+        if (hasSilence(target)) {
             event.setCancelled(true);
             warden.setTarget(null);
         }
