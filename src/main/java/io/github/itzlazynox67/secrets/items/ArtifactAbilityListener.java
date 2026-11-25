@@ -67,7 +67,7 @@ public final class ArtifactAbilityListener implements Listener {
                     }
                     if ("book".equals(id(player.getInventory().getItemInMainHand())) || "book".equals(id(player.getInventory().getItemInOffHand()))) {
                         Location ashCenter = player.getLocation().add(0, 0.15, 0);
-                        player.getWorld().spawnParticle(Particle.ASH, ashCenter, 3, 0.35, 0.12, 0.35, 0.005);
+                        player.getWorld().spawnParticle(Particle.ASH, ashCenter, 12, 0.65, 0.35, 0.65, 0.01);
                     }
                 }
             }
