@@ -48,6 +48,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "coords" -> coordinates(sender, args);
             case "reload" -> reload(sender);
             case "book" -> giveBookToSelf(sender);
+            case "protection" -> protection(sender, args);
             default -> sendHelp(sender, label);
         }
         return true;
@@ -98,6 +99,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
                 ? SecretsBookFactory.create(plugin, definition)
                 : registry.createItem(id);
         giveOrDrop(target, item);
+        if (id.equals("explosion_gift")) plugin.getProtectionManager().grant(sender instanceof Player player ? player : null, target);
         sender.sendMessage(msg("&aGave &f" + definition.displayName() + " &ato &f" + target.getName() + "&a."));
     }
 
@@ -117,8 +119,22 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
                     ? SecretsBookFactory.create(plugin, definition)
                     : registry.createItem(definition.id());
             giveOrDrop(target, item);
+            if (definition.id().equals("explosion_gift")) plugin.getProtectionManager().grant(sender instanceof Player player ? player : null, target);
         }
         sender.sendMessage(msg("&aGave the collectible set to &f" + target.getName() + "&a."));
+    }
+
+    private void protection(CommandSender sender, String[] args) {
+        if (args.length != 3 || !args[1].equalsIgnoreCase("revoke")) {
+            sender.sendMessage(msg("&cUsage: /secrets protection revoke <player>"));
+            return;
+        }
+        org.bukkit.OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        if (!target.hasPlayedBefore() && !target.isOnline()) {
+            sender.sendMessage(msg("&cThat player has not joined this server before."));
+            return;
+        }
+        plugin.getProtectionManager().revoke(sender, target.getUniqueId(), args[2]);
     }
 
     private void giveBookToSelf(CommandSender sender) {
@@ -191,6 +207,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
         sender.sendMessage(msg("&f/" + label + " coords &7- View book coordinates"));
         sender.sendMessage(msg("&f/" + label + " version &7- Show plugin version"));
+        sender.sendMessage(msg("&f/" + label + " protection revoke <player> &7- Revoke a gift you granted"));
         if (sender.hasPermission("secrets.admin")) {
             sender.sendMessage(msg("&f/" + label + " give <player> <item> &7- Give one collectible"));
             sender.sendMessage(msg("&f/" + label + " giveall <player> &7- Give the full collection"));
@@ -213,6 +230,9 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             return filter(registry.getDefinitions().stream().map(ArtifactDefinition::id).toList(), args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("protection") && args[1].equalsIgnoreCase("revoke")) {
+            return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[2]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("info")) {
             return filter(registry.getDefinitions().stream().map(ArtifactDefinition::id).toList(), args[1]);
