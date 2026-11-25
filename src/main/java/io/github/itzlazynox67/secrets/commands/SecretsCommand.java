@@ -142,7 +142,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             org.bukkit.entity.Fireball fireball = player.launchProjectile(org.bukkit.entity.Fireball.class);
             org.bukkit.util.Vector direction = player.getEyeLocation().getDirection().normalize();
             fireball.setDirection(direction);
-            fireball.setVelocity(direction.multiply(2.5));
+            fireball.setVelocity(direction.multiply(6.0));
             fireball.setYield(5.0f);
             fireball.setIsIncendiary(false);
             player.sendMessage(msg("&cHellfire launched!"));
@@ -158,11 +158,11 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
 
         ItemStack item;
         switch (id) {
-            case "tnt" -> item = new ItemStack(org.bukkit.Material.TNT, 1);
+            case "tnt" -> item = new ItemStack(org.bukkit.Material.TNT, 64);
             case "flint_and_steel" -> item = new ItemStack(org.bukkit.Material.FLINT_AND_STEEL, 1);
-            case "fireworks" -> item = new ItemStack(org.bukkit.Material.FIREWORK_ROCKET, 1);
-            case "tnt_minecart" -> item = new ItemStack(org.bukkit.Material.TNT_MINECART, 1);
-            case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 1);
+            case "fireworks" -> item = new ItemStack(org.bukkit.Material.FIREWORK_ROCKET, 64);
+            case "tnt_minecart" -> item = new ItemStack(org.bukkit.Material.TNT_MINECART, 64);
+            case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 64);
             default -> {
                 ArtifactDefinition definition = registry.get(id);
                 if (definition == null || id.equals("book")) {
