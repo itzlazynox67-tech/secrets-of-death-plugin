@@ -136,17 +136,14 @@ public final class ArtifactAbilityListener implements Listener {
         }
         if (!(event.getDamager() instanceof Player player)) return;
         String weaponId = id(player.getInventory().getItemInMainHand());
-        // Mirrors POVS_V2's storm_trident trigger: a player hit while raining
-        // calls lightning at the nearest player within four blocks of the wielder.
-        if ("godswill".equals(weaponId) && event.getEntity() instanceof Player
+        // God's Will calls exactly one lightning strike on the player hit.
+        // It has no custom ability cooldown; each successful hit can trigger it
+        // whenever the world currently has rain or a thunderstorm.
+        if ("godswill".equals(weaponId) && event.getEntity() instanceof Player target
                 && player.getWorld().hasStorm()) {
-            Player nearest = player.getWorld().getNearbyPlayers(player.getLocation(), 4.0).stream()
-                    .filter(candidate -> !candidate.equals(player))
-                    .min(Comparator.comparingDouble(candidate -> candidate.getLocation().distanceSquared(player.getLocation())))
-                    .orElse(null);
-            if (nearest != null) {
-                nearest.getWorld().strikeLightning(nearest.getLocation());
-            }
+            Location strikeLocation = target.getLocation();
+            target.getWorld().playSound(strikeLocation, Sound.ITEM_TRIDENT_THUNDER, 1.0f, 1.0f);
+            target.getWorld().strikeLightning(strikeLocation);
         }
         if ("deadlock".equals(weaponId) && event.getEntity() instanceof LivingEntity hitTarget) {
             long now = System.currentTimeMillis();
@@ -310,6 +307,13 @@ public final class ArtifactAbilityListener implements Listener {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 4, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 1, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.BREACH, 2, true);
+                // Bring the trident's melee swing speed up to a netherite sword's 1.6 attacks/second.
+                meta.addAttributeModifier(org.bukkit.attribute.Attribute.ATTACK_SPEED,
+                        new org.bukkit.attribute.AttributeModifier(
+                                NamespacedKey.minecraft("godswill_attack_speed"),
+                                0.5,
+                                org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                                org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
                 meta.setUnbreakable(true);
             }
             case "deaths_embrace" -> {
