@@ -358,7 +358,7 @@ public final class SilenceAbilityListener implements Listener {
             teamName = "silence_rg_" + id.toString().replace("-", "").substring(0, 12);
             team = board.getTeam(teamName);
             if (team == null) team = board.registerNewTeam(teamName);
-            team.color(ChatColor.BLUE);
+            team.color(net.kyori.adventure.text.format.NamedTextColor.BLUE);
             glowTeams.put(id, teamName);
         }
         org.bukkit.scoreboard.Team oldTeam = board.getEntryTeam(player.getName());
