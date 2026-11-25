@@ -60,6 +60,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "protection" -> protection(sender, args);
             case "revoke" -> openRevokeMenu(sender);
             case "claim" -> claimItem(sender, args);
+            case "resetcooldowns", "resetcooldown" -> resetCooldowns(sender, args);
             case "artifacts" -> openArtifacts(sender);
             case "items" -> openItems(sender);
             default -> sendHelp(sender, label);
@@ -137,6 +138,30 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&aGave the collectible set to &f" + target.getName() + "&a."));
     }
 
+
+    private void resetCooldowns(CommandSender sender, String[] args) {
+        if (args.length != 3) {
+            sender.sendMessage(msg("&cUsage: /secrets resetcooldowns <player> <artifact>"));
+            return;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            sender.sendMessage(msg("&cThat player is not online."));
+            return;
+        }
+        String artifactId = args[2].toLowerCase(Locale.ROOT);
+        ArtifactDefinition definition = registry.get(artifactId);
+        if (definition == null) {
+            sender.sendMessage(msg("&cUnknown artifact. Use /secrets list."));
+            return;
+        }
+        if (!plugin.resetArtifactCooldowns(target, artifactId)) {
+            sender.sendMessage(msg("&c" + definition.displayName() + " does not have a resettable ability cooldown."));
+            return;
+        }
+        sender.sendMessage(msg("&aReset all &f" + definition.displayName() + " &aability cooldowns for &f" + target.getName() + "&a."));
+        if (!sender.equals(target)) target.sendMessage(msg("&aYour &f" + definition.displayName() + " &aability cooldowns were reset by an operator."));
+    }
 
     private void claimItem(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -312,6 +337,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
         sender.sendMessage(msg("&f/" + label + " coords &7- View book coordinates"));
         sender.sendMessage(msg("&f/" + label + " version &7- Show plugin version"));
+        sender.sendMessage(msg("&f/" + label + " resetcooldowns <player> <artifact> &7- Reset an artifact's ability cooldowns"));
         sender.sendMessage(msg("&f/" + label + " revoke &7- Open protection revocation menu"));
         sender.sendMessage(msg("&f/" + label + " protection revoke <player> &7- Revoke a gift you granted"));
         if (sender.hasPermission("secrets.admin")) {
@@ -328,9 +354,15 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
                                                  @NotNull String alias, @NotNull String[] args) {
         if (!sender.isOp()) return List.of();
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "artifacts", "items"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "artifacts", "items", "resetcooldowns", "resetcooldown"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("resetcooldowns") || args[0].equalsIgnoreCase("resetcooldown"))) {
+            return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("resetcooldowns") || args[0].equalsIgnoreCase("resetcooldown"))) {
+            return filter(registry.getDefinitions().stream().map(ArtifactDefinition::id).toList(), args[2]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("giveall"))) {
             return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[1]);
