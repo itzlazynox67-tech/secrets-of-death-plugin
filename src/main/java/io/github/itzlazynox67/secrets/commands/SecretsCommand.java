@@ -4,6 +4,7 @@ import io.github.itzlazynox67.secrets.SecretsPlugin;
 import io.github.itzlazynox67.secrets.items.ArtifactDefinition;
 import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import io.github.itzlazynox67.secrets.items.SecretsBookFactory;
+import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -49,6 +50,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "reload" -> reload(sender);
             case "book" -> giveBookToSelf(sender);
             case "protection" -> protection(sender, args);
+            case "revoke" -> openRevokeMenu(sender);
             default -> sendHelp(sender, label);
         }
         return true;
@@ -122,6 +124,15 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             if (definition.id().equals("explosion_gift")) plugin.getProtectionManager().grant(sender instanceof Player player ? player : null, target);
         }
         sender.sendMessage(msg("&aGave the collectible set to &f" + target.getName() + "&a."));
+    }
+
+
+    private void openRevokeMenu(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(msg("&cOnly players can open the revoke menu."));
+            return;
+        }
+        new ProtectionRevokeMenu(plugin).open(player, 0);
     }
 
     private void protection(CommandSender sender, String[] args) {
@@ -207,6 +218,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
         sender.sendMessage(msg("&f/" + label + " coords &7- View book coordinates"));
         sender.sendMessage(msg("&f/" + label + " version &7- Show plugin version"));
+        sender.sendMessage(msg("&f/" + label + " revoke &7- Open protection revocation menu"));
         sender.sendMessage(msg("&f/" + label + " protection revoke <player> &7- Revoke a gift you granted"));
         if (sender.hasPermission("secrets.admin")) {
             sender.sendMessage(msg("&f/" + label + " give <player> <item> &7- Give one collectible"));
@@ -221,7 +233,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                  @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
         }
