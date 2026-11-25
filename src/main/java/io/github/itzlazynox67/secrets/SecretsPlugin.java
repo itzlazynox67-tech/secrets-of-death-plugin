@@ -2,16 +2,22 @@ package io.github.itzlazynox67.secrets;
 
 import io.github.itzlazynox67.secrets.commands.SecretsCommand;
 import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
+import io.github.itzlazynox67.secrets.items.ArtifactAbilityListener;
+import io.github.itzlazynox67.secrets.items.ExplosionProtectionManager;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class SecretsPlugin extends JavaPlugin {
     private ArtifactRegistry artifactRegistry;
+    private ExplosionProtectionManager protectionManager;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         this.artifactRegistry = new ArtifactRegistry(this);
+        this.protectionManager = new ExplosionProtectionManager(this);
+        getServer().getPluginManager().registerEvents(protectionManager, this);
+        getServer().getPluginManager().registerEvents(new ArtifactAbilityListener(this), this);
 
         PluginCommand command = getCommand("secrets");
         if (command == null) {
@@ -25,6 +31,8 @@ public final class SecretsPlugin extends JavaPlugin {
         command.setTabCompleter(handler);
         getLogger().info("SecretsOfDeath enabled. Registered " + artifactRegistry.getDefinitions().size() + " collectible items.");
     }
+
+    public ExplosionProtectionManager getProtectionManager() { return protectionManager; }
 
     public ArtifactRegistry getArtifactRegistry() {
         return artifactRegistry;
