@@ -111,31 +111,37 @@ public final class SilenceAbilityListener implements Listener {
         if (!ready(player, "Sonic Beam", 120_000L)) return;
         Location eye = player.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
+        // Warden-style wind-up: charge first, then the sonic boom, then the travelling beam.
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_SONIC_CHARGE, 1.5f, 1.0f);
         new BukkitRunnable() {
-            int step = 1;
-            final Set<UUID> hit = new HashSet<>();
             @Override public void run() {
-                if (step > 35 || !player.isOnline()) {
-                    if (player.isOnline()) {
-                        Location end = eye.clone().add(direction.clone().multiply(35));
-                        player.getWorld().playSound(end, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.2f, 1.0f);
-                        player.getWorld().spawnParticle(Particle.SONIC_BOOM, end, 8, 0.35, 0.35, 0.35, 0.02);
+                if (!player.isOnline()) return;
+                player.getWorld().playSound(eye, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.2f, 1.0f);
+                new BukkitRunnable() {
+                    int step = 1;
+                    final Set<UUID> hit = new HashSet<>();
+                    @Override public void run() {
+                        if (step > 35 || !player.isOnline()) {
+                            if (player.isOnline()) {
+                                Location end = eye.clone().add(direction.clone().multiply(35));
+                                player.getWorld().spawnParticle(Particle.SONIC_BOOM, end, 8, 0.35, 0.35, 0.35, 0.02);
+                            }
+                            cancel();
+                            return;
+                        }
+                        Location point = eye.clone().add(direction.clone().multiply(step));
+                        player.getWorld().spawnParticle(Particle.SONIC_BOOM, point, 1, 0, 0, 0, 0);
+                        player.getWorld().spawnParticle(Particle.SCULK_SOUL, point, 5, 0.15, 0.15, 0.15, 0.01);
+                        for (Entity entity : player.getWorld().getNearbyEntities(point, 2.5, 2.5, 2.5)) {
+                            if (!(entity instanceof LivingEntity target) || target.equals(player) || !hit.add(target.getUniqueId())) continue;
+                            if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
+                            target.damage(14.0, player);
+                        }
+                        step++;
                     }
-                    cancel();
-                    return;
-                }
-                Location point = eye.clone().add(direction.clone().multiply(step));
-                player.getWorld().spawnParticle(Particle.SONIC_BOOM, point, 1, 0, 0, 0, 0);
-                player.getWorld().spawnParticle(Particle.SCULK_SOUL, point, 5, 0.15, 0.15, 0.15, 0.01);
-                for (Entity entity : player.getWorld().getNearbyEntities(point, 2.5, 2.5, 2.5)) {
-                    if (!(entity instanceof LivingEntity target) || target.equals(player) || !hit.add(target.getUniqueId())) continue;
-                    if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                    target.damage(14.0, player);
-                }
-                step++;
+                }.runTaskTimer(plugin, 0L, 1L);
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }.runTaskLater(plugin, 20L);
         player.sendMessage(ChatColor.DARK_AQUA + "Silence: Sonic Beam fired.");
     }
 
@@ -224,6 +230,8 @@ public final class SilenceAbilityListener implements Listener {
                     Location spawn = player.getLocation().add(forward.clone().multiply(2).add(side.clone().multiply(i * 0.8)));
                     Warden warden = (Warden) player.getWorld().spawnEntity(spawn, EntityType.WARDEN);
                     warden.setPersistent(true);
+                    warden.getPersistentDataContainer().set(new NamespacedKey(plugin, "silence_soldier_owner"), PersistentDataType.STRING, player.getUniqueId().toString());
+                    warden.setTarget(null);
                     warden.customName(net.kyori.adventure.text.Component.text("Silence Soldier", net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA));
                 }
                 player.getWorld().spawnParticle(Particle.SONIC_BOOM, player.getLocation(), 4, 1, 1, 1, 0.02);
@@ -243,18 +251,38 @@ public final class SilenceAbilityListener implements Listener {
     }
 
     private void rampageDestroy(Player player) {
+        if (!ready(player, "Rampage Destruction", 180_000L)) return;
         Location center = player.getLocation();
-        for (int x = -2; x <= 2; x++) for (int y = 0; y <= 5; y++) for (int z = -2; z <= 2; z++) {
-            var block = center.clone().add(x, y, z).getBlock();
-            if (!block.getType().isAir() && block.getType().getHardness() >= 0) block.breakNaturally();
+        Vector forward = center.getDirection().setY(0).normalize();
+        if (forward.lengthSquared() == 0) forward = new Vector(0, 0, 1);
+        Vector right = new Vector(-forward.getZ(), 0, forward.getX());
+        Location origin = center.clone().add(forward.clone().multiply(2));
+        int broken = 0;
+        for (int depth = 0; depth < 5; depth++) {
+            for (int width = -2; width <= 2; width++) {
+                for (int height = 0; height < 6; height++) {
+                    Location blockLocation = origin.clone()
+                            .add(forward.clone().multiply(depth))
+                            .add(right.clone().multiply(width))
+                            .add(0, height, 0);
+                    var block = blockLocation.getBlock();
+                    Material type = block.getType();
+                    if (type.isAir() || type.getHardness() < 0 || type == Material.BEDROCK
+                            || type == Material.END_PORTAL_FRAME || type == Material.BARRIER) continue;
+                    if (block.breakNaturally()) broken++;
+                }
+            }
         }
-        burst(center, 300);
-        center.getWorld().playSound(center, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 1.0f, 1.0f);
-        center.getWorld().playSound(center, Sound.ENTITY_RAVAGER_ROAR, 1.0f, 1.0f);
+        burst(origin, 500);
+        center.getWorld().playSound(origin, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 1.2f, 0.8f);
+        center.getWorld().playSound(origin, Sound.ENTITY_RAVAGER_ROAR, 1.2f, 0.8f);
         for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-            if (entity instanceof LivingEntity target && !target.equals(player)) target.damage(3.0, player);
+            if (entity instanceof LivingEntity target && !target.equals(player)) {
+                if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
+                target.damage(10.0, player);
+            }
         }
-        player.sendMessage(ChatColor.DARK_AQUA + "Silence: Rampage destruction!");
+        player.sendMessage(ChatColor.DARK_AQUA + "Silence: Rampage destruction! Cleared " + broken + " blocks.");
     }
 
     private void pull(Player player) {
@@ -275,9 +303,39 @@ public final class SilenceAbilityListener implements Listener {
     }
 
     private void rampageJump(Player player) {
-        player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 20, 30, true, false, true));
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_ATTACK_IMPACT, 1.5f, 1.0f);
-        player.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, player.getLocation(), 100, 1.5, 1.5, 1.5, 0.1);
+        if (!groundSlamming.add(player.getUniqueId())) return;
+        Location launch = player.getLocation();
+        player.setVelocity(new Vector(launch.getDirection().getX() * 0.35, 2.8, launch.getDirection().getZ() * 0.35));
+        player.getWorld().playSound(launch, Sound.ENTITY_WARDEN_ATTACK_IMPACT, 1.8f, 0.7f);
+        burst(launch, 350);
+        player.sendMessage(ChatColor.DARK_AQUA + "Silence: Rampage Jump! Land to unleash the enhanced impact.");
+        new BukkitRunnable() {
+            int ticks = 0;
+            boolean airborne = false;
+            @Override public void run() {
+                if (!player.isOnline() || ticks++ > 160) {
+                    groundSlamming.remove(player.getUniqueId());
+                    cancel();
+                    return;
+                }
+                if (!airborne && !player.isOnGround()) airborne = true;
+                if (airborne && player.isOnGround() && ticks > 5) {
+                    Location landing = player.getLocation();
+                    burst(landing, 1200);
+                    landing.getWorld().spawnParticle(Particle.EXPLOSION, landing, 8, 3, 0.5, 3, 0.02);
+                    landing.getWorld().spawnParticle(Particle.CRIT, landing, 400, 8, 2, 8, 0.35);
+                    landing.getWorld().playSound(landing, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.8f, 0.65f);
+                    landing.getWorld().playSound(landing, Sound.ENTITY_DRAGON_FIREBALL_EXPLODE, 1.5f, 0.7f);
+                    for (Entity entity : player.getNearbyEntities(150, 100, 150)) {
+                        if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
+                        if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
+                        target.damage(40.0, player);
+                    }
+                    groundSlamming.remove(player.getUniqueId());
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private void endRampage(Player player) {
@@ -289,6 +347,18 @@ public final class SilenceAbilityListener implements Listener {
         location.getWorld().spawnParticle(Particle.SCULK_SOUL, location, count, 1, 1, 1, 0.1);
         location.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, location, count / 2, 1, 1, 1, 0.1);
         location.getWorld().spawnParticle(Particle.LARGE_SMOKE, location, count / 4, 1, 1, 1, 0.05);
+    }
+
+
+    @EventHandler
+    public void protectSilenceSoldiersFromOwner(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
+        if (!(event.getEntity() instanceof Warden warden) || !(event.getTarget() instanceof Player target)) return;
+        String ownerId = warden.getPersistentDataContainer().get(
+                new NamespacedKey(plugin, "silence_soldier_owner"), PersistentDataType.STRING);
+        if (ownerId != null && ownerId.equals(target.getUniqueId().toString())) {
+            event.setCancelled(true);
+            warden.setTarget(null);
+        }
     }
 
     @EventHandler
