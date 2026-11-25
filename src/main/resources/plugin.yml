@@ -1,9 +1,9 @@
-name: SecretsOfDeath
+name: Artifacts
 version: '${version}'
 main: io.github.itzlazynox67.secrets.SecretsPlugin
 api-version: '1.21.11'
 author: itzlazynox67
-description: Secrets of Death and Destruction collectible items and book.
+description: Custom artifacts, abilities, and collectible items.
 
 commands:
   secrets:
