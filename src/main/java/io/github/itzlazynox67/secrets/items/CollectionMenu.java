@@ -34,8 +34,9 @@ public final class CollectionMenu implements Listener, CommandExecutor {
 
     public void openArtifacts(Player player) {
         Inventory menu = Bukkit.createInventory(null, 27, ChatColor.DARK_AQUA + "Artifacts");
-        menu.setItem(11, entry(SecretsBookFactory.create(plugin, plugin.getArtifactRegistry().get("book")), "Secrets of Death", "The Secrets of Death collection book."));
-        menu.setItem(15, entry(plugin.getArtifactRegistry().createItem("silence"), "Silence", "A separate Warden-themed artifact."));
+        menu.setItem(10, entry(SecretsBookFactory.create(plugin, plugin.getArtifactRegistry().get("book")), "Secrets of Death", "The Secrets of Death collection book."));
+        menu.setItem(13, entry(plugin.getArtifactRegistry().createItem("silence"), "Silence", "A separate Warden-themed artifact."));
+        menu.setItem(16, entry(plugin.getArtifactRegistry().createItem("godswill"), "God's Will", "A separate storm-calling trident artifact."));
         player.openInventory(menu);
     }
 
@@ -91,7 +92,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         }
         if (id == null) {
             int slot = event.getSlot();
-            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 11 ? "book" : slot == 15 ? "silence" : null;
+            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 10 ? "book" : slot == 13 ? "silence" : slot == 16 ? "godswill" : null;
         }
         if (id == null) return;
         ItemStack reward;
