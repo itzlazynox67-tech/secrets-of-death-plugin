@@ -8,13 +8,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerToggleGlideEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.Vector;
 import org.bukkit.event.player.PlayerVelocityEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -69,7 +68,7 @@ public final class ArtifactAbilityListener implements Listener {
 
     private boolean nearExplosiveThreat(Player player) {
         return !player.getNearbyEntities(10, 6, 10).stream().noneMatch(entity ->
-                entity instanceof Creeper || entity instanceof TNTPrimed || entity instanceof ExplosiveMinecart
+                entity instanceof Creeper || entity instanceof TNTPrimed || entity.getType() == EntityType.MINECART_TNT
                         || entity instanceof EnderCrystal);
     }
 
@@ -133,7 +132,7 @@ public final class ArtifactAbilityListener implements Listener {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
                 blastforgeStability.put(player.getUniqueId(), System.currentTimeMillis() + 4000L);
                 Location base = player.getEyeLocation();
-                Vector direction = base.getDirection().normalize();
+                org.bukkit.util.Vector direction = base.getDirection().normalize();
                 for (int i = 2; i <= 6; i += 2) {
                     Location spawn = base.clone().add(direction.clone().multiply(i));
                     TNTPrimed tnt = player.getWorld().spawn(spawn, TNTPrimed.class);
@@ -161,14 +160,13 @@ public final class ArtifactAbilityListener implements Listener {
     public void onBlastforgeKnockback(PlayerVelocityEvent event) {
         Long until = blastforgeStability.get(event.getPlayer().getUniqueId());
         if (until == null || System.currentTimeMillis() > until) return;
-        Vector velocity = event.getVelocity();
+        org.bukkit.util.Vector velocity = event.getVelocity();
         event.setVelocity(new org.bukkit.util.Vector(0, Math.max(0, velocity.getY()), 0));
     }
 
     @EventHandler
-    public void onGlide(PlayerToggleGlideEvent event) {
-        if (!event.isGliding()) return;
-        Player player = event.getPlayer();
+    public void onGlide(EntityToggleGlideEvent event) {
+        if (!event.isGliding() || !(event.getEntity() instanceof Player player)) return;
         if (!"phoenix_wings".equals(id(player.getInventory().getChestplate()))) return;
         if (!ready(phoenixCooldowns, player, 45000L)) return;
         phoenixCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 45000L);
