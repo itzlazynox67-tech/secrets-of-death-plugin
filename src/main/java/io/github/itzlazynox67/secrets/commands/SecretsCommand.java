@@ -39,7 +39,9 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command,
                              @NotNull String label, @NotNull String[] args) {
-        if (!sender.isOp()) {
+        boolean cycletationBookAction = args.length == 2 && args[0].equalsIgnoreCase("claim")
+                && args[1].toLowerCase(Locale.ROOT).startsWith("cycle_");
+        if (!sender.isOp() && !cycletationBookAction) {
             sender.sendMessage(msg("&cOnly server operators can use Secrets commands."));
             return true;
         }
