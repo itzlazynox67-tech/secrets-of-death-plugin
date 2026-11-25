@@ -120,6 +120,15 @@ public final class ArtifactAbilityListener implements Listener {
 
     @EventHandler
     public void onDamage(EntityDamageByEntityEvent event) {
+        // Protection gifts block custom mace pulse and DeadLock axe damage.
+        if (event.getEntity() instanceof Player victim && plugin.getProtectionManager().isProtected(victim)
+                && event.getDamager() instanceof Player attacker) {
+            String attackerWeapon = id(attacker.getInventory().getItemInMainHand());
+            if ("deaths_embrace".equals(attackerWeapon) || "deadlock".equals(attackerWeapon)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
         if (!(event.getDamager() instanceof Player player)) return;
         String weaponId = id(player.getInventory().getItemInMainHand());
         if ("deadlock".equals(weaponId) && event.getEntity() instanceof LivingEntity hitTarget) {
@@ -137,6 +146,9 @@ public final class ArtifactAbilityListener implements Listener {
                             && targetIds.add(target.getUniqueId())) targets.add(target);
                 }
                 for (LivingEntity target : targets) {
+                    // Protected gift holders are unaffected by DeadLock's area ability.
+                    if (target instanceof Player protectedPlayer
+                            && plugin.getProtectionManager().isProtected(protectedPlayer)) continue;
                     target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
                     target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 30,
                             0.4, 0.8, 0.4, new Particle.DustOptions(Color.RED, 1.8f));
