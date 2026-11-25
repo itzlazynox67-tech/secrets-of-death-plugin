@@ -138,13 +138,21 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             return;
         }
         String id = args[1].toLowerCase(Locale.ROOT);
+        if (id.equals("hellfire")) {
+            org.bukkit.entity.Fireball fireball = player.launchProjectile(org.bukkit.entity.Fireball.class);
+            fireball.setYield(5.0f);
+            fireball.setIsIncendiary(false);
+            player.sendMessage(msg("&cHellfire launched!"));
+            return;
+        }
+
         ItemStack item;
         switch (id) {
             case "tnt" -> item = new ItemStack(org.bukkit.Material.TNT, 1);
             case "flint_and_steel" -> item = new ItemStack(org.bukkit.Material.FLINT_AND_STEEL, 1);
             case "fireworks" -> item = new ItemStack(org.bukkit.Material.FIREWORK_ROCKET, 1);
             case "tnt_minecart" -> item = new ItemStack(org.bukkit.Material.TNT_MINECART, 1);
-            case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 16);
+            case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 1);
             default -> {
                 ArtifactDefinition definition = registry.get(id);
                 if (definition == null || id.equals("book") || id.equals("explosion_gift")) {
