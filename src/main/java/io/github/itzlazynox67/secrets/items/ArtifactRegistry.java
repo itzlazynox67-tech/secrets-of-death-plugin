@@ -75,7 +75,12 @@ public final class ArtifactRegistry {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
-        meta.setDisplayName(color("&c&l" + definition.displayName()));
+        String styledName = switch (definition.id()) {
+            case "phoenix_wings" -> "&7&o" + definition.displayName();
+            case "book" -> "&f&o" + definition.displayName();
+            default -> "&c&o" + definition.displayName();
+        };
+        meta.setDisplayName(color(styledName));
         meta.setLore(java.util.List.of(
                 color("&7Secrets of Death and Destruction"),
                 color("&8Collectible item"),
