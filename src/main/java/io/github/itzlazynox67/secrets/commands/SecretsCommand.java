@@ -205,7 +205,17 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private void openArtifacts(CommandSender sender) {\n        if (!(sender instanceof Player player)) { sender.sendMessage(msg("&cOnly players can open the artifact menu.")); return; }\n        new io.github.itzlazynox67.secrets.items.CollectionMenu(plugin).openArtifacts(player);\n    }\n\n    private void openItems(CommandSender sender) {\n        if (!(sender instanceof Player player)) { sender.sendMessage(msg("&cOnly players can open the items menu.")); return; }\n        new io.github.itzlazynox67.secrets.items.CollectionMenu(plugin).openItems(player);\n    }\n\n    private void openRevokeMenu(CommandSender sender) {
+    private void openArtifacts(CommandSender sender) {
+        if (!(sender instanceof Player player)) { sender.sendMessage(msg("&cOnly players can open the artifact menu.")); return; }
+        new io.github.itzlazynox67.secrets.items.CollectionMenu(plugin).openArtifacts(player);
+    }
+
+    private void openItems(CommandSender sender) {
+        if (!(sender instanceof Player player)) { sender.sendMessage(msg("&cOnly players can open the items menu.")); return; }
+        new io.github.itzlazynox67.secrets.items.CollectionMenu(plugin).openItems(player);
+    }
+
+    private void openRevokeMenu(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(msg("&cOnly players can open the revoke menu."));
             return;
@@ -291,7 +301,9 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
     private void sendHelp(CommandSender sender, String label) {
         sender.sendMessage(msg("&8&m--------------------------------"));
         sender.sendMessage(msg("&c&lSecrets of Death &7Commands"));
-        sender.sendMessage(msg("&f/" + label + " artifacts &7- Open the artifact collection"));\n        sender.sendMessage(msg("&f/" + label + " items &7- Open the regular items menu"));\n        sender.sendMessage(msg("&f/" + label + " list &7- List registered items"));
+        sender.sendMessage(msg("&f/" + label + " artifacts &7- Open the artifact collection"));
+        sender.sendMessage(msg("&f/" + label + " items &7- Open the regular items menu"));
+        sender.sendMessage(msg("&f/" + label + " list &7- List registered items"));
         sender.sendMessage(msg("&f/" + label + " info <item> &7- View item details"));
         sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
         sender.sendMessage(msg("&f/" + label + " coords &7- View book coordinates"));
