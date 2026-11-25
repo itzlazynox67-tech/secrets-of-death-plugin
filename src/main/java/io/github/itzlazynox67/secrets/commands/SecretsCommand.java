@@ -140,9 +140,19 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         String id = args[1].toLowerCase(Locale.ROOT);
         if (id.equals("hellfire")) {
             org.bukkit.entity.Fireball fireball = player.launchProjectile(org.bukkit.entity.Fireball.class);
+            org.bukkit.util.Vector direction = player.getEyeLocation().getDirection().normalize();
+            fireball.setDirection(direction);
+            fireball.setVelocity(direction.multiply(2.5));
             fireball.setYield(5.0f);
             fireball.setIsIncendiary(false);
             player.sendMessage(msg("&cHellfire launched!"));
+            return;
+        }
+        if (id.equals("explosion_gift")) {
+            ItemStack gift = registry.createItem("explosion_gift");
+            giveOrDrop(player, gift);
+            plugin.getProtectionManager().grant(player, player);
+            player.sendMessage(msg("&aYou received the Explosion Protection Gift. Keep it in your inventory for protection."));
             return;
         }
 
@@ -155,7 +165,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "rails" -> item = new ItemStack(org.bukkit.Material.RAIL, 1);
             default -> {
                 ArtifactDefinition definition = registry.get(id);
-                if (definition == null || id.equals("book") || id.equals("explosion_gift")) {
+                if (definition == null || id.equals("book")) {
                     player.sendMessage(msg("&cThat book entry cannot be claimed."));
                     return;
                 }
