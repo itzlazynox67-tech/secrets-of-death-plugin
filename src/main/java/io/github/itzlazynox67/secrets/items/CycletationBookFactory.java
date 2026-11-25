@@ -23,8 +23,7 @@ public final class CycletationBookFactory {
         meta.setTitle("Cycletation");
         meta.setAuthor("God's of Weather");
         meta.setGeneration(BookMeta.Generation.ORIGINAL);
-        meta.setLore(List.of(Component.text("From one god to another, to another, and another, until it reached you")
-                .decoration(TextDecoration.ITALIC, false)));
+        meta.setLore(List.of("From one god to another, to another, and another, until it reached you"));
         meta.addPages(
                 page(
                         action("Clear", "#ff0000", "clear"), line("\n"),
