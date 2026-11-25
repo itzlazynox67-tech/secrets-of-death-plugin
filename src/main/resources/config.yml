@@ -1,0 +1,23 @@
+# Secrets of Death - main configuration
+# Values can be expanded as the project is developed.
+settings:
+  debug: false
+  language: en_US
+
+book:
+  title: "Secrets of Death and Destruction"
+  author: "Unknown"
+  last-page-coordinate:
+    world: world
+    x: 0
+    y: 80
+    z: 0
+
+resource-pack:
+  # Keep the resource pack hosted separately and provide its public download URL here later.
+  enabled: false
+  url: ""
+  sha1: ""
+
+messages:
+  prefix: "&8[&cSecrets&8] &r"
