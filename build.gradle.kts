@@ -34,5 +34,5 @@ tasks.processResources {
 
 // Keep the generated jar name predictable for the GitHub Actions artifact.
 tasks.jar {
-    archiveBaseName.set("SecretsOfDeath")
+    archiveBaseName.set("Artifacts")
 }
