@@ -32,54 +32,55 @@ public final class SecretsBookFactory {
         meta.setTitle(title);
         meta.setAuthor(author);
 
-        // Page 1 — overview and the first group of recorded objects.
+        // Page 1 — basic supplies, matching the original four-page reference.
         meta.addPages(page(
-                heading("SECRETS OF DEATH\n& DESTRUCTION"),
-                line("A record of the hidden collection.\n"),
-                heading("THE FIRST DISCOVERIES"),
-                line("TNT\nFlint and Steel\nFireworks")
+                colored("TNT", NamedTextColor.LIGHT_PURPLE, "tnt"),
+                line("\\n\\n"),
+                colored("Flint and Steel", NamedTextColor.BLACK, "flint_and_steel"),
+                line("\\n\\n"),
+                colored("Fireworks", NamedTextColor.DARK_RED, "fireworks")
         ));
 
-        // Page 2 — collection index: weapons and Death's Overlayer equipment.
+        // Page 2 — spear, mace, and Death's Overlayer armor.
         meta.addPages(page(
-                heading("COLLECTION INDEX"),
-                line("Spear\nMace\n"),
-                clickable("Death's Helmet", "death_helmet"),
-                line("\n"),
-                clickable("Death's Chestplate", "death_chestplate"),
-                line("\n"),
-                clickable("Death's Leggings", "death_leggings"),
-                line("\n"),
-                clickable("Death's Boots", "death_boots")
+                colored("Spear", NamedTextColor.DARK_PURPLE, "eclipse"),
+                line("                         "),
+                colored("Mace", NamedTextColor.DARK_RED, "deaths_embrace"),
+                line("\\n\\n"),
+                colored("Death's Helmet", NamedTextColor.RED, "death_helmet"),
+                line("\\n\\n"),
+                colored("Death's Chestplate", NamedTextColor.RED, "death_chestplate"),
+                line("\\n\\n"),
+                colored("Death's Leggings", NamedTextColor.RED, "death_leggings"),
+                line("\\n\\n"),
+                colored("Death's Boots", NamedTextColor.RED, "death_boots")
         ));
 
-        // Page 3 — remaining named collection entries.
+        // Page 3 — remaining collection entries in the exact reference order.
         meta.addPages(page(
-                heading("COLLECTION INDEX"),
-                line("TNT Minecarts\nRailroads\n"),
-                clickable("Blastforge Pickaxe", "blastforge"),
-                line("\n"),
-                clickable("Hellfire", "hellfire"),
-                line("\n"),
-                clickable("DeadLock Axe", "deadlock"),
-                line("\n"),
-                clickable("Phoenix Wings", "phoenix_wings"),
-                line("\n"),
-                clickable("Death's Embrace", "deaths_embrace"),
-                line("\n"),
-                clickable("Eclipse", "eclipse")
+                colored("TNT Minecarts", NamedTextColor.LIGHT_PURPLE, "tnt_minecart"),
+                line("\\n\\n"),
+                colored("Railroads", NamedTextColor.BLACK, "rails"),
+                line("\\n\\n"),
+                colored("Blastforge Pickaxe", NamedTextColor.LIGHT_PURPLE, "blastforge"),
+                line("\\n\\n"),
+                colored("Hellfire", NamedTextColor.AQUA, "hellfire"),
+                line("\\n\\n"),
+                colored("Deadlock Axe", NamedTextColor.DARK_PURPLE, "deadlock"),
+                line("\\n\\n"),
+                colored("Phoenix Wings", NamedTextColor.BLACK, "phoenix_wings")
         ));
 
-        // Page 4 — destination and configured coordinates.
+        // Page 4 — destination coordinates, plus the requested revoke-menu link.
         meta.addPages(page(
-                heading("FINAL DESTINATION"),
-                line("ORBITALS\n\n"),
-                line("World: " + world + "\n"),
-                line("X: " + x + "\n"),
-                line("Y: " + y + "\n"),
-                line("Z: " + z + "\n\n"),
-                line("Coordinates can be changed by an administrator with /secrets coords.\\n\\n"),
-                clickableCommand("REVOKE PROTECTION", "/secrets revoke", "Open the protection revocation menu")
+                heading("Destination:"),
+                heading("Orbitals"),
+                line("\\n\\n"),
+                heading("X: 9144211"),
+                heading("Y: -121"),
+                heading("Z: 3213121"),
+                line("\\n\\n"),
+                clickableCommand("REVOKE", "/secrets revoke", "Open the protection revocation menu")
         ));
 
         meta.getPersistentDataContainer().set(
@@ -106,6 +107,12 @@ public final class SecretsBookFactory {
         return Component.text(text, NamedTextColor.BLACK);
     }
 
+
+    private static Component colored(String label, NamedTextColor color, String itemId) {
+        return Component.text(label, color)
+                .clickEvent(ClickEvent.runCommand("/secrets claim " + itemId))
+                .hoverEvent(Component.text("Click to receive " + label, NamedTextColor.GRAY));
+    }
 
     private static Component clickableCommand(String label, String command, String hover) {
         return Component.text(label, NamedTextColor.RED)
