@@ -59,6 +59,7 @@ public final class ArtifactRegistry {
 
         Material baseMaterial = switch (definition.id()) {
             case "book" -> Material.WRITTEN_BOOK;
+            case "deaths_embrace" -> Material.MACE;
             case "phoenix_wings" -> Material.ELYTRA;
             case "death_helmet" -> Material.NETHERITE_HELMET;
             case "death_chestplate" -> Material.NETHERITE_CHESTPLATE;
