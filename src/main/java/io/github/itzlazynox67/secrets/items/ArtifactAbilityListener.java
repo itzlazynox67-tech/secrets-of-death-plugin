@@ -136,6 +136,18 @@ public final class ArtifactAbilityListener implements Listener {
         }
         if (!(event.getDamager() instanceof Player player)) return;
         String weaponId = id(player.getInventory().getItemInMainHand());
+        // Mirrors POVS_V2's storm_trident trigger: a player hit while raining
+        // calls lightning at the nearest player within four blocks of the wielder.
+        if ("godswill".equals(weaponId) && event.getEntity() instanceof Player
+                && player.getWorld().hasStorm()) {
+            Player nearest = player.getWorld().getNearbyPlayers(player.getLocation(), 4.0).stream()
+                    .filter(candidate -> !candidate.equals(player))
+                    .min(Comparator.comparingDouble(candidate -> candidate.getLocation().distanceSquared(player.getLocation())))
+                    .orElse(null);
+            if (nearest != null) {
+                nearest.getWorld().strikeLightning(nearest.getLocation());
+            }
+        }
         if ("deadlock".equals(weaponId) && event.getEntity() instanceof LivingEntity hitTarget) {
             long now = System.currentTimeMillis();
             if (now >= deadlockCooldowns.getOrDefault(player.getUniqueId(), 0L)) {
@@ -292,6 +304,14 @@ public final class ArtifactAbilityListener implements Listener {
         if (item == null || !item.hasItemMeta()) return;
         ItemMeta meta = item.getItemMeta();
         switch (id) {
+            case "godswill" -> {
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 20, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.RIPTIDE, 6, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 4, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 1, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.BREACH, 2, true);
+                meta.setUnbreakable(true);
+            }
             case "deaths_embrace" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.BREACH, 5, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 5, true);
