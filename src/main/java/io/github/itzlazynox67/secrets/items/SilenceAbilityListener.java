@@ -163,7 +163,7 @@ public final class SilenceAbilityListener implements Listener {
                         for (Entity entity : player.getWorld().getNearbyEntities(point, 2.5, 2.5, 2.5)) {
                             if (!(entity instanceof LivingEntity target) || target.equals(player) || !hit.add(target.getUniqueId())) continue;
                             if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                            target.damage(14.0, player);
+                            target.damage(40.0, player);
                         }
                         step += 2;
                     }
