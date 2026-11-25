@@ -46,6 +46,30 @@ public final class ExplosionProtectionManager implements Listener {
         return true;
     }
 
+
+    public java.util.Map<UUID, String> getGrantsFor(Player viewer) {
+        java.util.Map<UUID, String> grants = new java.util.LinkedHashMap<>();
+        var section = plugin.getConfig().getConfigurationSection("protection.grants");
+        if (section == null) return grants;
+        for (String key : section.getKeys(false)) {
+            try {
+                UUID recipientId = UUID.fromString(key);
+                String owner = section.getString(key);
+                if (viewer.hasPermission("secrets.admin")
+                        || viewer.getUniqueId().toString().equals(owner)) {
+                    grants.put(recipientId, owner);
+                }
+            } catch (IllegalArgumentException ignored) {
+                plugin.getLogger().warning("Ignoring invalid protection recipient UUID: " + key);
+            }
+        }
+        return grants;
+    }
+
+    public java.util.List<UUID> getGrantRecipientsFor(Player viewer) {
+        return new java.util.ArrayList<>(getGrantsFor(viewer).keySet());
+    }
+
     public boolean isProtected(Player player) {
         String owner = plugin.getConfig().getString("protection.grants." + player.getUniqueId());
         if (owner == null) return false;
