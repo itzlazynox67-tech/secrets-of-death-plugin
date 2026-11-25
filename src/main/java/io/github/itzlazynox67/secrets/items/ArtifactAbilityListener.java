@@ -68,8 +68,7 @@ public final class ArtifactAbilityListener implements Listener {
 
     private boolean nearExplosiveThreat(Player player) {
         return !player.getNearbyEntities(10, 6, 10).stream().noneMatch(entity ->
-                entity instanceof Creeper || entity instanceof TNTPrimed || entity.getType() == EntityType.MINECART_TNT
-                        || entity instanceof EnderCrystal);
+                entity instanceof Creeper || entity instanceof TNTPrimed || entity instanceof EnderCrystal);
     }
 
     @EventHandler
