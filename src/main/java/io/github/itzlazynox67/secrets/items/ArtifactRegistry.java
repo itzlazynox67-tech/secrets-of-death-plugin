@@ -94,8 +94,11 @@ public final class ArtifactRegistry {
         } else {
             meta.setDisplayName(color(styledName));
         }
+        String collectionLore = definition.id().equals("silence")
+                ? "&8Standalone artifact"
+                : "&7Secrets of Death and Destruction";
         meta.setLore(java.util.List.of(
-                color("&7Secrets of Death and Destruction"),
+                color(collectionLore),
                 color("&8Collectible item"),
                 color("&7" + definition.description()),
                 color("&8ID: " + definition.id())
