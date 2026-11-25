@@ -9,6 +9,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerInputEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.ArmorMeta;
@@ -29,7 +30,9 @@ public final class ArtifactAbilityListener implements Listener {
     private final Map<UUID, Long> pulseCooldowns = new HashMap<>();
     private final Map<UUID, Long> deadlockCooldowns = new HashMap<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
-    private final Map<UUID, Long> phoenixCooldowns = new HashMap<>();
+    private final Map<UUID, Long> phoenixDashCooldowns = new HashMap<>();
+    private final Map<UUID, Long> lastForwardPress = new HashMap<>();
+    private final Map<UUID, Boolean> forwardHeld = new HashMap<>();
     private final Map<UUID, Long> blastforgeStability = new HashMap<>();
 
     public ArtifactAbilityListener(SecretsPlugin plugin) {
@@ -194,8 +197,6 @@ public final class ArtifactAbilityListener implements Listener {
             case "phoenix_wings" -> {
                 if (!player.isSneaking()) return;
                 event.setCancelled(true);
-                if (!ready(phoenixCooldowns, player, 45000L)) return;
-                phoenixCooldowns.put(player.getUniqueId(), System.currentTimeMillis() + 45000L);
                 player.getWorld().spawnParticle(Particle.EXPLOSION, player.getLocation(), 3, 0.6, 0.3, 0.6);
                 player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 1.5f, 0.7f);
                 player.setFallDistance(0);
@@ -217,6 +218,38 @@ public final class ArtifactAbilityListener implements Listener {
             }
             default -> { }
         }
+    }
+
+    @EventHandler
+    public void onPhoenixDashInput(PlayerInputEvent event) {
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        boolean forward = event.getInput().isForward();
+        boolean wasForward = forwardHeld.getOrDefault(playerId, false);
+        forwardHeld.put(playerId, forward);
+
+        // Only a fresh press counts; holding W does not repeatedly activate the dash.
+        if (!forward || wasForward || !"phoenix_wings".equals(id(player.getInventory().getChestplate()))) return;
+
+        long now = System.currentTimeMillis();
+        long previousPress = lastForwardPress.getOrDefault(playerId, 0L);
+        if (now - previousPress > 300L) {
+            lastForwardPress.put(playerId, now);
+            return;
+        }
+
+        lastForwardPress.remove(playerId);
+        if (!ready(phoenixDashCooldowns, player, 5000L)) return;
+        phoenixDashCooldowns.put(playerId, now + 5000L);
+
+        org.bukkit.util.Vector dash = player.getEyeLocation().getDirection().normalize().multiply(2.2);
+        player.setFallDistance(0);
+        player.setVelocity(dash);
+        Location trail = player.getLocation().add(0, 0.8, 0);
+        player.getWorld().spawnParticle(Particle.FLAME, trail, 24, 0.35, 0.35, 0.35, 0.025);
+        player.getWorld().spawnParticle(Particle.CLOUD, trail, 12, 0.3, 0.25, 0.3, 0.02);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_LAUNCH, 0.8f, 1.4f);
+        player.sendMessage(ChatColor.GOLD + "Phoenix Dash!");
     }
 
     @EventHandler
