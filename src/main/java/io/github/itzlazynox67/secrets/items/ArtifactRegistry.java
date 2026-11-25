@@ -51,7 +51,7 @@ public final class ArtifactRegistry {
     }
 
     public Collection<ArtifactDefinition> getDefinitions() {
-        return definitions.values();
+        return definitions.values().stream().filter(definition -> !definition.id().equals("godswill")).toList();
     }
 
     public ArtifactDefinition get(String id) {
@@ -103,7 +103,7 @@ public final class ArtifactRegistry {
         }
         String collectionLore = (definition.id().equals("silence") || definition.id().equals("cycletation"))
                 ? "&8Standalone artifact"
-                : "&7Secrets of Death and Destruction";
+                : definition.id().equals("godswill") ? "&8Cycletation reward" : "&7Secrets of Death and Destruction";
         meta.setLore(java.util.List.of(
                 color(collectionLore),
                 color("&8Collectible item"),
