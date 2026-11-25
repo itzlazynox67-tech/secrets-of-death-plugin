@@ -144,7 +144,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             org.bukkit.util.Vector direction = player.getEyeLocation().getDirection().normalize();
             fireball.setDirection(direction);
             fireball.setVelocity(direction.multiply(6.0));
-            fireball.setYield(5.0f);
+            fireball.setYield(10.0f);
             fireball.setIsIncendiary(false);
             player.sendMessage(msg("&cHellfire launched!"));
             return;
