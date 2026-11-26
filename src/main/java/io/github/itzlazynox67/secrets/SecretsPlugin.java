@@ -8,6 +8,9 @@ import io.github.itzlazynox67.secrets.items.ShadowHarvesterAbilityListener;
 import io.github.itzlazynox67.secrets.items.ExplosionProtectionManager;
 import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
 import io.github.itzlazynox67.secrets.items.CollectionMenu;
+import io.github.itzlazynox67.secrets.items.MidasAbilityListener;
+import io.github.itzlazynox67.secrets.items.MidasBlessingManager;
+import io.github.itzlazynox67.secrets.items.MidasBlessingRevokeMenu;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,6 +19,8 @@ public final class SecretsPlugin extends JavaPlugin {
     private ExplosionProtectionManager protectionManager;
     private ArtifactAbilityListener artifactAbilityListener;
     private SilenceAbilityListener silenceAbilityListener;
+    private MidasAbilityListener midasAbilityListener;
+    private MidasBlessingManager midasBlessingManager;
 
     @Override
     public void onEnable() {
@@ -24,6 +29,11 @@ public final class SecretsPlugin extends JavaPlugin {
         this.protectionManager = new ExplosionProtectionManager(this);
         getServer().getPluginManager().registerEvents(protectionManager, this);
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
+        this.midasBlessingManager = new MidasBlessingManager(this);
+        getServer().getPluginManager().registerEvents(midasBlessingManager, this);
+        getServer().getPluginManager().registerEvents(new MidasBlessingRevokeMenu(this), this);
+        this.midasAbilityListener = new MidasAbilityListener(this);
+        getServer().getPluginManager().registerEvents(midasAbilityListener, this);
         this.artifactAbilityListener = new ArtifactAbilityListener(this);
         this.silenceAbilityListener = new SilenceAbilityListener(this);
         ShadowHarvesterAbilityListener shadowHarvesterAbilityListener = new ShadowHarvesterAbilityListener(this);
@@ -49,6 +59,9 @@ public final class SecretsPlugin extends JavaPlugin {
     }
 
     public boolean resetArtifactCooldowns(org.bukkit.entity.Player player, String artifactId) {
+        if ("midas".equalsIgnoreCase(artifactId)) {
+            return midasAbilityListener != null && midasAbilityListener.resetCooldowns(player);
+        }
         if ("silence".equalsIgnoreCase(artifactId)) {
             return silenceAbilityListener != null && silenceAbilityListener.resetCooldowns(player, artifactId);
         }
@@ -56,6 +69,8 @@ public final class SecretsPlugin extends JavaPlugin {
     }
 
     public ExplosionProtectionManager getProtectionManager() { return protectionManager; }
+
+    public MidasBlessingManager getMidasBlessingManager() { return midasBlessingManager; }
 
     public ArtifactRegistry getArtifactRegistry() {
         return artifactRegistry;
