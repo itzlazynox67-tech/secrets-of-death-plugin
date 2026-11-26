@@ -192,6 +192,7 @@ public final class ArtifactAbilityListener implements Listener {
                             && plugin.getProtectionManager().isProtected(protectedPlayer)) continue;
                     target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
                     if (target instanceof Player stunnedPlayer) {
+                        // Freeze the player hit and every nearby player in place for 6 seconds.
                         deadlockStunUntil.put(stunnedPlayer.getUniqueId(), System.currentTimeMillis() + 6000L);
                         stunnedPlayer.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
                     }
@@ -226,30 +227,34 @@ public final class ArtifactAbilityListener implements Listener {
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
 
         UUID attackerId = player.getUniqueId();
-        UUID struckId = struckPlayer.getUniqueId();
         Location center = player.getLocation().clone();
-        player.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
+        World world = center.getWorld();
+        if (world == null) return;
+        world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.8f, 0.65f);
+        world.spawnParticle(Particle.EXPLOSION, center.clone().add(0, 1, 0), 8, 2.2, 1.0, 2.2, 0.08);
         spawnDeathEmbraceVisual(center);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             Player attacker = Bukkit.getPlayer(attackerId);
-            Player originalTarget = Bukkit.getPlayer(struckId);
-            if (attacker == null || !attacker.isOnline() || originalTarget == null
-                    || !originalTarget.isOnline() || center.getWorld() == null) return;
+            if (attacker == null || !attacker.isOnline() || !center.getWorld().equals(attacker.getWorld())) return;
 
             deathEmbraceSplashProcessing.add(attackerId);
             try {
-                for (Entity entity : center.getWorld().getNearbyEntities(center, 20, 20, 20)) {
-                    if (!(entity instanceof Player nearbyPlayer)
-                            || nearbyPlayer.getUniqueId().equals(attackerId)
-                            || nearbyPlayer.getUniqueId().equals(struckId)) continue;
-                    if (nearbyPlayer.getLocation().distanceSquared(center) > 400.0) continue;
-                    if (plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
+                // Player-only blast: everyone within 20 blocks is hit, including the
+                // original target. The holder and protection-gift holders are excluded.
+                for (Player nearbyPlayer : world.getPlayers()) {
+                    if (nearbyPlayer.equals(attacker)
+                            || nearbyPlayer.getLocation().distanceSquared(center) > 400.0
+                            || plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
 
-                    // Match the original hit's final damage exactly, without recalculating
-                    // each nearby player's armor or resistance.
-                    nearbyPlayer.setHealth(Math.max(0.0, nearbyPlayer.getHealth() - sharedDamage));
+                    Vector knockback = nearbyPlayer.getLocation().toVector().subtract(center.toVector());
+                    if (knockback.lengthSquared() < 0.0001) {
+                        knockback = attacker.getLocation().getDirection().clone();
+                    }
+                    knockback.normalize().multiply(1.8).setY(0.75);
+                    nearbyPlayer.setVelocity(knockback);
                     nearbyPlayer.setNoDamageTicks(0);
+                    nearbyPlayer.damage(10.0, attacker); // 5 hearts of blast damage.
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
@@ -314,9 +319,22 @@ public final class ArtifactAbilityListener implements Listener {
             deadlockStunUntil.remove(event.getPlayer().getUniqueId());
             return;
         }
-        if (event.getTo() != null && event.getTo().getY() > event.getFrom().getY() + 0.001) {
-            event.setTo(event.getFrom());
+        if (event.getTo() != null
+                && (event.getFrom().getX() != event.getTo().getX()
+                || event.getFrom().getY() != event.getTo().getY()
+                || event.getFrom().getZ() != event.getTo().getZ())) {
+            event.setTo(new Location(event.getFrom().getWorld(), event.getFrom().getX(),
+                    event.getFrom().getY(), event.getFrom().getZ(),
+                    event.getTo().getYaw(), event.getTo().getPitch()));
             event.getPlayer().setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+        }
+    }
+
+    @EventHandler
+    public void stopDeadLockStunVelocity(PlayerVelocityEvent event) {
+        Long until = deadlockStunUntil.get(event.getPlayer().getUniqueId());
+        if (until != null && until > System.currentTimeMillis()) {
+            event.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
         }
     }
 
