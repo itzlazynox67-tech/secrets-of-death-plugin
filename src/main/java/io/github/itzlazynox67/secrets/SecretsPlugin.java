@@ -21,6 +21,7 @@ public final class SecretsPlugin extends JavaPlugin {
     private SilenceAbilityListener silenceAbilityListener;
     private MidasAbilityListener midasAbilityListener;
     private MidasBlessingManager midasBlessingManager;
+    private MidasBlessingRevokeMenu midasBlessingRevokeMenu;
 
     @Override
     public void onEnable() {
@@ -31,7 +32,8 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
         this.midasBlessingManager = new MidasBlessingManager(this);
         getServer().getPluginManager().registerEvents(midasBlessingManager, this);
-        getServer().getPluginManager().registerEvents(new MidasBlessingRevokeMenu(this), this);
+        this.midasBlessingRevokeMenu = new MidasBlessingRevokeMenu(this);
+        getServer().getPluginManager().registerEvents(midasBlessingRevokeMenu, this);
         this.midasAbilityListener = new MidasAbilityListener(this);
         getServer().getPluginManager().registerEvents(midasAbilityListener, this);
         this.artifactAbilityListener = new ArtifactAbilityListener(this);
@@ -71,6 +73,8 @@ public final class SecretsPlugin extends JavaPlugin {
     public ExplosionProtectionManager getProtectionManager() { return protectionManager; }
 
     public MidasBlessingManager getMidasBlessingManager() { return midasBlessingManager; }
+
+    public MidasBlessingRevokeMenu getMidasBlessingRevokeMenu() { return midasBlessingRevokeMenu; }
 
     public ArtifactRegistry getArtifactRegistry() {
         return artifactRegistry;
