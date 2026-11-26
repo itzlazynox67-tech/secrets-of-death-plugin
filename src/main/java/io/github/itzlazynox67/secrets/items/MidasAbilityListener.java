@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerVelocityEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -150,7 +151,7 @@ public final class MidasAbilityListener implements Listener {
             event.setCancelled(true);
             Vector direction;
             if (shooter instanceof Entity attacker && attacker.getWorld().equals(defender.getWorld())) {
-                direction = attacker.getEyeLocation().toVector().subtract(projectile.getLocation().toVector()).normalize();
+                direction = attacker.getLocation().add(0, Math.max(0.5, attacker.getHeight() * 0.5), 0).toVector().subtract(projectile.getLocation().toVector()).normalize();
             } else {
                 direction = projectile.getVelocity().clone().multiply(-1).normalize();
             }
