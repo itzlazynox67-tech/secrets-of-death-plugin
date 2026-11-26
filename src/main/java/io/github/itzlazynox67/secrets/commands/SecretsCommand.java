@@ -93,7 +93,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&7ID: &f" + item.id()));
         sender.sendMessage(msg("&7Model: &f" + item.modelId()));
         sender.sendMessage(msg("&7" + item.description()));
-        sender.sendMessage(msg("&8This starter registers collectible items and models; active ability effects are not included."));
+        sender.sendMessage(msg("&8Use the artifact in-game to activate its registered abilities."));
     }
 
     private void giveItem(CommandSender sender, String[] args) {
