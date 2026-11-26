@@ -8,7 +8,7 @@ description: Custom artifacts, abilities, and collectible items.
 commands:
   secrets:
     description: Secrets of Death item and book commands.
-    usage: /secrets <help|list|info|book|claim|give|giveall|coords|version|reload|protection|revoke|resetcooldowns>
+    usage: /secrets <help|list|info|book|claim|give|giveall|coords|version|reload|protection|revoke|midasrevoke|midasprotection|resetcooldowns>
     aliases: [sod]
   artifacts:
     description: Open the artifact collection menu.
