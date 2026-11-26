@@ -448,7 +448,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
     private void sendHelp(CommandSender sender, String label) {
         sender.sendMessage(msg("&8&m--------------------------------"));
         sender.sendMessage(msg("&c&lSecrets of Death &7Commands"));
-        sender.sendMessage(msg("&f/" + label + " artifacts &7- Open the artifact collection"));
+        sender.sendMessage(msg("&f/" + label + " &7- Open the artifact collection menu"));
         sender.sendMessage(msg("&f/" + label + " items &7- Open the regular items menu"));
         sender.sendMessage(msg("&f/" + label + " list &7- List registered items"));
         sender.sendMessage(msg("&f/" + label + " info <item> &7- View item details"));
@@ -474,7 +474,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
                                                  @NotNull String alias, @NotNull String[] args) {
         if (!sender.isOp()) return List.of();
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "midasrevoke", "midasprotection", "artifacts", "items", "resetcooldowns", "resetcooldown"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "midasrevoke", "midasprotection", "menu", "items", "resetcooldowns", "resetcooldown"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
         }
