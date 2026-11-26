@@ -7,6 +7,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
@@ -22,6 +25,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -45,6 +49,23 @@ public final class MidasAbilityListener implements Listener {
     private final Map<UUID, Long> cataclysmCooldowns = new HashMap<>();
     private final Map<UUID, Long> frozenUntil = new HashMap<>();
     private final Set<UUID> reflectedDamage = new HashSet<>();
+    private final Map<BlockPosition, TemporaryGold> temporaryGoldBlocks = new HashMap<>();
+
+    private record BlockPosition(UUID worldId, int x, int y, int z) {
+        private static BlockPosition of(org.bukkit.block.Block block) {
+            return new BlockPosition(block.getWorld().getUID(), block.getX(), block.getY(), block.getZ());
+        }
+    }
+
+    private static final class TemporaryGold {
+        private final org.bukkit.block.BlockState originalState;
+        private long expiresAt;
+
+        private TemporaryGold(org.bukkit.block.BlockState originalState, long expiresAt) {
+            this.originalState = originalState;
+            this.expiresAt = expiresAt;
+        }
+    }
 
     public MidasAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
@@ -71,6 +92,19 @@ public final class MidasAbilityListener implements Listener {
                 });
             }
         }.runTaskTimer(plugin, 5L, 5L);
+
+        new BukkitRunnable() {
+            @Override public void run() {
+                long now = System.currentTimeMillis();
+                Iterator<Map.Entry<BlockPosition, TemporaryGold>> iterator = temporaryGoldBlocks.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<BlockPosition, TemporaryGold> entry = iterator.next();
+                    if (entry.getValue().expiresAt > now) continue;
+                    entry.getValue().originalState.update(true, false);
+                    iterator.remove();
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private LivingEntity livingEntity(UUID id) {
@@ -164,6 +198,7 @@ public final class MidasAbilityListener implements Listener {
         world.playSound(center, Sound.BLOCK_BEACON_POWER_SELECT, 1.5f, 0.5f);
         world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0), 260, 3.0, 1.5, 3.0, 0.12);
         world.spawnParticle(Particle.FLASH, center.clone().add(0, 1, 0), 2, 0.5, 0.5, 0.5, 0);
+        turnBlocksToTemporaryGold(world, center);
         int hit = 0;
         for (Player target : world.getPlayers()) {
             if (target.equals(player) || target.getLocation().distanceSquared(center) > CATACLYSM_RADIUS * CATACLYSM_RADIUS
@@ -179,6 +214,61 @@ public final class MidasAbilityListener implements Listener {
             hit++;
         }
         player.sendMessage(ChatColor.GOLD + "GOLDEN CATACLYSM! " + hit + " player(s) hit.");
+    }
+
+
+    private void turnBlocksToTemporaryGold(World world, Location center) {
+        long expiresAt = System.currentTimeMillis() + 60_000L;
+        int radius = (int) Math.ceil(CATACLYSM_RADIUS);
+        int centerX = center.getBlockX();
+        int centerY = center.getBlockY();
+        int centerZ = center.getBlockZ();
+
+        for (int x = centerX - radius; x <= centerX + radius; x++) {
+            for (int y = Math.max(world.getMinHeight(), centerY - radius); y <= Math.min(world.getMaxHeight() - 1, centerY + radius); y++) {
+                for (int z = centerZ - radius; z <= centerZ + radius; z++) {
+                    double dx = (x + 0.5) - center.getX();
+                    double dy = (y + 0.5) - center.getY();
+                    double dz = (z + 0.5) - center.getZ();
+                    if (dx * dx + dy * dy + dz * dz > CATACLYSM_RADIUS * CATACLYSM_RADIUS) continue;
+
+                    org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                    if (block.getType().isAir()) continue;
+                    BlockPosition position = BlockPosition.of(block);
+                    TemporaryGold existing = temporaryGoldBlocks.get(position);
+                    if (existing == null) {
+                        temporaryGoldBlocks.put(position, new TemporaryGold(block.getState(), expiresAt));
+                    } else {
+                        existing.expiresAt = expiresAt;
+                    }
+                    if (block.getType() != Material.GOLD_BLOCK) block.setType(Material.GOLD_BLOCK, false);
+                }
+            }
+        }
+        world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.25f);
+        world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0), 180, CATACLYSM_RADIUS / 2, 1.2, CATACLYSM_RADIUS / 2, 0.06);
+    }
+
+    private boolean isTemporaryGold(org.bukkit.block.Block block) {
+        return temporaryGoldBlocks.containsKey(BlockPosition.of(block));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void protectTemporaryGoldFromBreaking(BlockBreakEvent event) {
+        if (isTemporaryGold(event.getBlock())) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(ChatColor.GOLD + "This gold is protected by Golden Cataclysm.");
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void protectTemporaryGoldFromBlockExplosions(BlockExplodeEvent event) {
+        event.blockList().removeIf(this::isTemporaryGold);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void protectTemporaryGoldFromEntityExplosions(EntityExplodeEvent event) {
+        event.blockList().removeIf(this::isTemporaryGold);
     }
 
     @EventHandler(ignoreCancelled = true)
