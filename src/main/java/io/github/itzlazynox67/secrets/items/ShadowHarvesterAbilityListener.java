@@ -302,22 +302,27 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 animateBoomerang(current.display, 40 + returnTick);
                 spawnThrowTrail(point);
 
-                // Pull the struck player along behind the returning mace.
+                // Keep the player tethered to the returning mace horizontally,
+                // but anchor the pull height to the holder so targets above the
+                // holder are pulled DOWN toward them instead of following the mace upward.
                 boolean playerStillBeingDragged = draggedPlayer != null && draggedPlayer.isOnline()
                         && draggedPlayer.getWorld().equals(holder.getWorld());
                 if (playerStillBeingDragged) {
-                    Location dragPoint = point.clone().add(0.0, -0.35, 0.0);
+                    Location dragPoint = point.clone();
+                    dragPoint.setY(holder.getLocation().getY() + 0.55);
+
                     Vector toMace = dragPoint.toVector().subtract(draggedPlayer.getLocation().toVector());
                     double distanceToMace = toMace.length();
-                    if (distanceToMace > 0.9) {
-                        double pullSpeed = Math.min(1.65, 0.45 + distanceToMace * 0.16);
+                    if (distanceToMace > 0.65) {
+                        double pullSpeed = Math.min(1.8, 0.55 + distanceToMace * 0.18);
                         draggedPlayer.setVelocity(toMace.normalize().multiply(pullSpeed));
                     }
                     spawnThrowTrail(draggedPlayer.getLocation().add(0.0, 1.0, 0.0));
                 }
 
+                // Don't return the weapon until the dragged player reaches the holder.
                 boolean playerCaughtUp = !playerStillBeingDragged
-                        || draggedPlayer.getLocation().distanceSquared(holder.getLocation()) <= 6.25;
+                        || draggedPlayer.getLocation().distanceSquared(holder.getLocation()) <= 2.25;
                 if (progress >= 1.0 && (playerCaughtUp || returnTick >= returnDuration + 35)) {
                     finishThrow(id);
                     cancel();
