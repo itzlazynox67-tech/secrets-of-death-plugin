@@ -77,8 +77,13 @@ public final class TarnishSwordAbilityListener implements Listener {
         return item.getItemMeta().getPersistentDataContainer().get(artifactKey, PersistentDataType.STRING);
     }
 
+    private boolean isTarnishItem(ItemStack item) {
+        return "tarnish_sword".equals(id(item));
+    }
+
     private boolean isHoldingTarnish(Player player) {
-        return "tarnish_sword".equals(id(player.getInventory().getItemInMainHand()));
+        return isTarnishItem(player.getInventory().getItemInMainHand())
+                || isTarnishItem(player.getInventory().getItemInOffHand());
     }
 
     private boolean hasTarnishInInventory(Player player) {
@@ -139,7 +144,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                 || feet == Material.WATER || body == Material.WATER || head == Material.WATER;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTarnishHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player wielder) || !isHoldingTarnish(wielder)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(wielder)) return;
@@ -228,13 +233,14 @@ public final class TarnishSwordAbilityListener implements Listener {
         target.getWorld().playSound(target.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.2f, .65f);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onRightClickStun(PlayerInteractEvent event) {
-        // Air interactions can be marked cancelled by vanilla prediction; still process this ability.
-        if (event.getHand() == null || event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        // Read the actual item used for this interaction. This supports Tarnish in either hand
+        // and still runs if another plugin cancels the vanilla interaction later in the event.
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player wielder = event.getPlayer();
-        if (!isHoldingTarnish(wielder)) return;
+        if (!isTarnishItem(event.getItem())) return;
+        event.setCancelled(true);
         long now = System.currentTimeMillis();
         long readyAt = stunAbilityCooldowns.getOrDefault(wielder.getUniqueId(), 0L);
         if (now < readyAt) {
