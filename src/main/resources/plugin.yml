@@ -3,29 +3,21 @@ version: '${version}'
 main: io.github.itzlazynox67.secrets.SecretsPlugin
 api-version: '1.21.11'
 author: itzlazynox67
-description: Custom artifacts, abilities, and collectible items.
+description: Secrets of Death and Destruction artifacts, abilities, and collection.
 
 commands:
-  secrets:
-    description: Secrets of Death item and book commands.
-    usage: /secrets <help|list|info|book|claim|give|giveall|coords|version|reload|protection|revoke|midasrevoke|midasprotection|resetcooldowns>
-    aliases: [sod]
   artifacts:
-    description: Open the artifact collection menu.
+    description: Open the Secrets artifact menu and manage the collection.
     usage: /artifacts
-    permission: secrets.op
-  items:
-    description: Open the regular items menu.
-    usage: /items
     permission: secrets.op
 
 permissions:
   secrets.op:
-    description: Allows server operators to use all Secrets commands.
+    description: Allows server operators to use all artifact administration commands.
     default: op
   secrets.use:
-    description: Allows use of basic Secrets commands.
+    description: Allows use of basic artifact commands.
     default: op
   secrets.admin:
-    description: Allows administrative Secrets actions.
+    description: Allows administrative artifact actions.
     default: op
