@@ -88,6 +88,10 @@ public final class MasterKeyAbilityListener implements Listener {
                 .filter(m -> m.isItem() && m != Material.AIR && !m.isLegacy() && m != Material.KNOWLEDGE_BOOK)
                 .filter(m -> query.isEmpty() || pretty(m).toLowerCase(Locale.ROOT).contains(query) || m.name().toLowerCase(Locale.ROOT).contains(query))
                 .sorted(Comparator.comparing(Material::name)).toList();
+        if (choices.isEmpty()) {
+            player.sendMessage(ChatColor.RED + "No items matched '" + search + "'. Try another name.");
+            return;
+        }
         int pages = (choices.size() + 44) / 45;
         page = Math.max(0, Math.min(page, pages - 1));
         Inventory menu = Bukkit.createInventory(null, 54, GUI_TITLE + (query.isEmpty() ? "" : " [" + search + "]") + " (" + (page + 1) + "/" + pages + ")");
@@ -246,9 +250,6 @@ public final class MasterKeyAbilityListener implements Listener {
                 return;
             }
             openItemMenu(player, 0, query);
-            if (player.getOpenInventory().getTopInventory().isEmpty()) {
-                player.sendMessage(ChatColor.RED + "No items matched '" + query + "'. Try another name.");
-            }
         });
     }
 
