@@ -89,7 +89,7 @@ public final class ChampionBladeAbilityListener implements Listener {
     }
 
     private void applyYellowNametag(Player p) {
-        Scoreboard board = p.getScoreboard();
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
         Team team = board.getTeam("champion_cause_yellow");
         if (team == null) team = board.registerNewTeam("champion_cause_yellow");
         team.setColor(ChatColor.YELLOW);
@@ -98,7 +98,7 @@ public final class ChampionBladeAbilityListener implements Listener {
     }
 
     private void clearYellowNametag(Player p) {
-        Team team = p.getScoreboard().getTeam("champion_cause_yellow");
+        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getTeam("champion_cause_yellow");
         if (team != null) team.removeEntry(p.getName());
         p.setPlayerListName(p.getName());
     }
