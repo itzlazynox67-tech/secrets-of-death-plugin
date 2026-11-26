@@ -80,7 +80,7 @@ public final class SecretsBookFactory {
                 heading("Y: -121"),
                 heading("Z: 3213121"),
                 line("\n\n"),
-                clickableCommand("REVOKE", "/secrets revoke", "Open the protection revocation menu")
+                clickableCommand("REVOKE", "/artifacts revoke", "Open the protection revocation menu")
         ));
 
         meta.getPersistentDataContainer().set(
@@ -109,7 +109,7 @@ public final class SecretsBookFactory {
 
     private static Component colored(String label, NamedTextColor color, String itemId) {
         return Component.text(label, color)
-                .clickEvent(ClickEvent.runCommand("/secrets claim " + itemId))
+                .clickEvent(ClickEvent.runCommand("/artifacts claim " + itemId))
                 .hoverEvent(Component.text("Click to receive " + label, NamedTextColor.GRAY));
     }
 
@@ -126,7 +126,7 @@ public final class SecretsBookFactory {
     private static Component clickable(String label, String itemId) {
         return Component.text(label, NamedTextColor.DARK_RED)
                 .decorate(TextDecoration.UNDERLINED)
-                .clickEvent(ClickEvent.runCommand("/secrets info " + itemId))
+                .clickEvent(ClickEvent.runCommand("/artifacts info " + itemId))
                 .hoverEvent(Component.text("View " + label + " information", NamedTextColor.GRAY));
     }
 }
