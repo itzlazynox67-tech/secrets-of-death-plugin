@@ -95,12 +95,24 @@ public final class TarnishSwordAbilityListener implements Listener {
 
     private boolean sameTeam(Player first, Player second) {
         if (first.equals(second)) return true;
-        org.bukkit.scoreboard.Scoreboard mainScoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
-        org.bukkit.scoreboard.Team firstTeam = first.getScoreboard().getEntryTeam(first.getName());
-        org.bukkit.scoreboard.Team secondTeam = second.getScoreboard().getEntryTeam(second.getName());
-        if (firstTeam == null) firstTeam = mainScoreboard.getEntryTeam(first.getName());
-        if (secondTeam == null) secondTeam = mainScoreboard.getEntryTeam(second.getName());
-        return firstTeam != null && secondTeam != null && firstTeam.getName().equals(secondTeam.getName());
+        org.bukkit.scoreboard.Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
+        org.bukkit.scoreboard.Team firstMain = main.getEntryTeam(first.getName());
+        org.bukkit.scoreboard.Team secondMain = main.getEntryTeam(second.getName());
+        if (firstMain != null && secondMain != null) {
+            return firstMain.getName().equalsIgnoreCase(secondMain.getName());
+        }
+        org.bukkit.scoreboard.Scoreboard firstBoard = first.getScoreboard();
+        org.bukkit.scoreboard.Scoreboard secondBoard = second.getScoreboard();
+        if (firstBoard != secondBoard) return false;
+        org.bukkit.scoreboard.Team firstTeam = firstBoard.getEntryTeam(first.getName());
+        org.bukkit.scoreboard.Team secondTeam = secondBoard.getEntryTeam(second.getName());
+        return firstTeam != null && secondTeam != null
+                && firstTeam.getName().equalsIgnoreCase(secondTeam.getName());
+    }
+
+    private boolean isOwnedSummon(Entity entity, Player owner) {
+        String summonOwner = entity.getPersistentDataContainer().get(summonOwnerKey, PersistentDataType.STRING);
+        return owner.getUniqueId().toString().equals(summonOwner);
     }
 
     private boolean protectedFromSummons(Player owner, Player target) {
@@ -141,6 +153,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             strike(world, center);
         }
         for (Entity entity : world.getNearbyEntities(center, 10, 10, 10)) {
+            if (isOwnedSummon(entity, wielder)) continue;
             if (!(entity instanceof Player nearby) || nearby.equals(wielder) || nearby.equals(target)) continue;
             if (protectedFromSummons(wielder, nearby)) continue;
             nearby.damage(20.0);
@@ -151,8 +164,11 @@ public final class TarnishSwordAbilityListener implements Listener {
     }
 
     private void strike(World world, Location location) {
-        world.strikeLightning(location);
-        world.spawnParticle(Particle.ELECTRIC_SPARK, location, 8, .7, 1, .7, .08);
+        // Use the visual-only lightning entity, then apply the ability's damage separately.
+        // This guarantees the bolt is visible without setting blocks or causing fire.
+        world.strikeLightningEffect(location);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, location.clone().add(0, 1, 0), 24, .7, 1, .7, .12);
+        world.spawnParticle(Particle.FLASH, location.clone().add(0, 1, 0), 2, .2, .3, .2, 0);
     }
 
     private void spawnTrialMobs(Player wielder, LivingEntity target) {
@@ -185,12 +201,18 @@ public final class TarnishSwordAbilityListener implements Listener {
     private void stun(Player target) {
         stunnedUntil.put(target.getUniqueId(), System.currentTimeMillis() + 30_000L);
         target.setVelocity(new Vector(0, 0, 0));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 30, 255, true, false, true));
+        target.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 20 * 30, 128, true, false, true));
         target.sendMessage(ChatColor.DARK_PURPLE + "Tarnish Sword has stunned you for 30 seconds!");
-        target.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, target.getLocation().add(0, 1, 0), 24, .7, 1, .7, .04);
+        Location effectAt = target.getLocation().clone().add(0, 1, 0);
+        target.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, effectAt, 32, .7, 1, .7, .04);
+        target.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, effectAt, 18, .5, .8, .5, .08);
+        target.getWorld().playSound(target.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.2f, .65f);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onRightClickStun(PlayerInteractEvent event) {
+        // Air interactions can be marked cancelled by vanilla prediction; still process this ability.
         if (event.getHand() == null || event.getHand().name().equals("OFF_HAND")) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player wielder = event.getPlayer();
@@ -215,7 +237,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: stunned " + stunned + " nearby enemy player(s) for 30 seconds.");
             wielder.getWorld().playSound(wielder.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.5f, .6f);
         } else {
-            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players within 20 blocks to stun.");
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players within 20 blocks to stun. Check that both players are not assigned to the same scoreboard team.");
         }
     }
 
