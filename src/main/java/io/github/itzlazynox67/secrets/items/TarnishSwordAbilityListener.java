@@ -110,6 +110,19 @@ public final class TarnishSwordAbilityListener implements Listener {
                 && firstTeam.getName().equalsIgnoreCase(secondTeam.getName());
     }
 
+
+    private void addSummonToOwnerTeam(Entity summon, Player owner) {
+        org.bukkit.scoreboard.Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        org.bukkit.scoreboard.Team team = board.getEntryTeam(owner.getName());
+        if (team == null) {
+            String teamName = "tarnish_" + owner.getUniqueId().toString().replace("-", "").substring(0, 8);
+            team = board.getTeam(teamName);
+            if (team == null) team = board.registerNewTeam(teamName);
+            team.addEntry(owner.getName());
+        }
+        team.addEntry(summon.getUniqueId().toString());
+    }
+
     private boolean isOwnedSummon(Entity entity, Player owner) {
         String summonOwner = entity.getPersistentDataContainer().get(summonOwnerKey, PersistentDataType.STRING);
         return owner.getUniqueId().toString().equals(summonOwner);
@@ -185,6 +198,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             spawn.setY(world.getHighestBlockYAt(spawn) + 1);
             Entity entity = world.spawnEntity(spawn, types[i]);
             entity.getPersistentDataContainer().set(summonOwnerKey, PersistentDataType.STRING, wielder.getUniqueId().toString());
+            addSummonToOwnerTeam(entity, wielder);
             if (entity instanceof LivingEntity living) {
                 // Give every Tarnish summon 50 hearts (100 health points).
                 if (living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null) {
