@@ -313,8 +313,8 @@ public final class SilenceAbilityListener implements Listener {
                     snapshots.add(new BlockSnapshot(world, x, y, z, original));
                     // Mostly ordinary sculk, with occasional shriekers and sensors.
                     int roll = ThreadLocalRandom.current().nextInt(100);
-                    Material domainBlock = roll < 80 ? Material.SCULK
-                            : roll < 90 ? Material.SCULK_SHRIEKER : Material.SCULK_SENSOR;
+                    Material domainBlock = roll < 90 ? Material.SCULK
+                            : roll < 95 ? Material.SCULK_SHRIEKER : Material.SCULK_SENSOR;
                     block.setType(domainBlock, false);
                     processed++;
                 }
