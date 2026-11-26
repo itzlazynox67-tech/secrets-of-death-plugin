@@ -283,8 +283,8 @@ public final class MidasAbilityListener implements Listener {
                     int y = centerY + dy;
                     int z = centerZ + dz;
                     if (y < world.getMinHeight() || y >= world.getMaxHeight()) continue;
-                    if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
-
+                    // Ensure the whole Cataclysm sphere is actually processed, not
+                    // silently skipped at the edge of currently unloaded chunks.
                     org.bukkit.block.Block block = world.getBlockAt(x, y, z);
                     if (block.getType().isAir()
                             || block.getState() instanceof org.bukkit.block.TileState) continue;
@@ -414,8 +414,17 @@ public final class MidasAbilityListener implements Listener {
         if (attacker instanceof Player player && plugin.getMidasBlessingManager().isProtected(player)) return;
         event.setCancelled(true);
         if (reflectedDamage.add(attacker.getUniqueId())) {
-            try { attacker.damage(Math.max(1.0, event.getFinalDamage()), defender); }
-            finally { reflectedDamage.remove(attacker.getUniqueId()); }
+            try {
+                // Reflect the defender's fully calculated incoming damage. Apply it
+                // directly so the attacker's armor cannot reduce the reflected amount.
+                double reflectedAmount = Math.max(0.0, event.getFinalDamage());
+                if (reflectedAmount > 0.0) {
+                    attacker.setNoDamageTicks(0);
+                    attacker.setHealth(Math.max(0.0, attacker.getHealth() - reflectedAmount));
+                }
+            } finally {
+                reflectedDamage.remove(attacker.getUniqueId());
+            }
         }
         attacker.getWorld().spawnParticle(Particle.WAX_ON, attacker.getLocation().add(0, 1, 0), 20, 0.35, 0.5, 0.35, 0.03);
         attacker.getWorld().playSound(attacker.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.65f, 1.8f);
