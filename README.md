@@ -4,12 +4,12 @@ A starter Paper plugin for Minecraft Java 1.21.11. This ZIP is intended to be up
 
 ## Included in this starter
 
-- `/secrets` command framework.
+- `/artifacts` command framework.
 - Collectible item registry with unique persistent IDs.
-- `/secrets give <player> <item>` and `/secrets giveall <player>`.
+- `/artifacts give <player> <item>` and `/artifacts giveall <player>`.
 - Coordinate book with configurable coordinates on its final page.
-- `/secrets coords` to view coordinates and `/secrets coords <world> <x> <y> <z>` to update them.
-- `/secrets list`, `/secrets info <item>`, `/secrets book`, `/secrets version`, `/secrets reload`.
+- `/artifacts coords` to view coordinates and `/artifacts coords <world> <x> <y> <z>` to update them.
+- `/artifacts list`, `/artifacts info <item>`, `/artifacts book`, `/artifacts version`, `/artifacts reload`.
 - Item-model component integration using the supplied `modeling:` item model identifiers.
 - Artifact abilities, enchantments, passive effects, and persistent explosion-protection grants.
 - Original resource pack plus independent placeholder models for collection items that did not yet have individual models.
@@ -25,7 +25,7 @@ A starter Paper plugin for Minecraft Java 1.21.11. This ZIP is intended to be up
 - Phoenix Wings: while wearing the custom Elytra, beginning to glide triggers the particle/sound effect and temporary Levitation.\n- Speed Demon's Soul: sneak + right-click while looking straight down toggles Speed Mode (Speed IV, extreme attack/mining speed, and a 25-block Slowness I aura); right-click dashes up to 15 blocks; sneak + right-click fires a 35-block beam (10 hearts and Slowness V); right-click while looking straight down activates REGEARA, immobilizing nearby entities for 10 seconds. Beam cooldown: 45 seconds; REGEARA cooldown: 5 minutes.\n- Speed Demon's Soul: sneak + right-click while looking straight down toggles Speed Mode (Speed IV, extreme attack/mining speed, and a 25-block Slowness I aura); right-click dashes up to 15 blocks; sneak + right-click fires a 35-block beam (10 hearts and Slowness V); right-click while looking straight down activates REGEARA, immobilizing nearby entities for 10 seconds. Beam cooldown: 45 seconds; REGEARA cooldown: 5 minutes.
 - Holding or wearing any collection artifact grants Strength I, Fire Resistance, and Speed II. Nearby Creepers, primed TNT, or End Crystals add Resistance.
 
-Explosion Protection Gift grants are saved in the plugin config when the token is given through the plugin command. The recipient is protected from explosion damage while the token remains in their inventory. The original player giver or an admin can revoke the grant with `/secrets protection revoke <player>`, even if the recipient is offline. Console-issued grants can be revoked by an admin.
+Explosion Protection Gift grants are saved in the plugin config when the token is given through the plugin command. The recipient is protected from explosion damage while the token remains in their inventory. The original player giver or an admin can revoke the grant with `/artifacts protection revoke <player>`, even if the recipient is offline. Console-issued grants can be revoked by an admin.
 
 ## Requirements
 
@@ -44,21 +44,31 @@ Upload the **contents** of this folder to the root of your repository. Ensure `.
 4. Download the `SecretsOfDeath-plugin` artifact.
 5. Extract the ZIP; it contains `SecretsOfDeath-1.0.0.jar`.
 
-## Commands
+## Main command: `/artifacts`
 
-| Command | Permission | Purpose |
-|---|---|---|
-| `/secrets help` | `secrets.use` | Show help |
-| `/secrets version` | `secrets.use` | Show plugin version |
-| `/secrets list` | `secrets.use` | List collectible IDs |
-| `/secrets info <item>` | `secrets.use` | Show item and model information |
-| `/secrets book` | `secrets.use` | Give yourself the coordinate book |
-| `/secrets coords` | `secrets.use` | Display configured book coordinates |
-| `/secrets give <player> <item>` | `secrets.admin` | Give one collectible |
-| `/secrets giveall <player>` | `secrets.admin` | Give the full collectible set |
-| `/secrets coords <world> <x> <y> <z>` | `secrets.admin` | Change coordinates used in newly created books |
-| `/secrets reload` | `secrets.admin` | Reload config.yml |
-| `/secrets protection revoke <player>` | Original giver or `secrets.admin` | Revoke a protection grant, including for offline recipients |
+Running `/artifacts` opens the main Secrets artifact menu. Administrative actions are subcommands of the same command:
+
+| Command | Purpose |
+|---|---|
+| `/artifacts` | Open the artifact collection menu |
+| `/artifacts items` | Open the regular collection items menu |
+| `/artifacts list` | List registered collectible IDs |
+| `/artifacts info <item>` | Show an item's details |
+| `/artifacts give <player> <item>` | Give one collectible |
+| `/artifacts giveall <player>` | Give the full collection |
+| `/artifacts book` | Give yourself the Secrets book |
+| `/artifacts claim <item>` | Claim an entry from the Secrets book |
+| `/artifacts coords` | Display the book's configured coordinates |
+| `/artifacts coords <world> <x> <y> <z>` | Change the book coordinates |
+| `/artifacts resetcooldowns <player> <artifact>` | Reset an artifact's ability cooldowns |
+| `/artifacts revoke` | Open the explosion-protection revoke menu |
+| `/artifacts protection revoke <player>` | Revoke explosion protection |
+| `/artifacts midasrevoke` | Open the Midas Blessing revoke menu |
+| `/artifacts midasprotection revoke <player>` | Revoke Midas immunity |
+| `/artifacts reload` | Reload plugin configuration |
+| `/artifacts version` | Show plugin version |
+
+Administrative commands are operator-only. The old `/secrets` and standalone `/items` commands have been removed.
 
 ## Item IDs
 
