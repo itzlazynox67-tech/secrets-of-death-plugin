@@ -9,6 +9,7 @@ import io.github.itzlazynox67.secrets.items.ExplosionProtectionManager;
 import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
 import io.github.itzlazynox67.secrets.items.CollectionMenu;
 import io.github.itzlazynox67.secrets.items.MidasAbilityListener;
+import io.github.itzlazynox67.secrets.items.SpeedDemonAbilityListener;
 import io.github.itzlazynox67.secrets.items.MidasBlessingManager;
 import io.github.itzlazynox67.secrets.items.MidasBlessingRevokeMenu;
 import org.bukkit.command.PluginCommand;
@@ -20,6 +21,7 @@ public final class SecretsPlugin extends JavaPlugin {
     private ArtifactAbilityListener artifactAbilityListener;
     private SilenceAbilityListener silenceAbilityListener;
     private MidasAbilityListener midasAbilityListener;
+    private SpeedDemonAbilityListener speedDemonAbilityListener;
     private MidasBlessingManager midasBlessingManager;
     private MidasBlessingRevokeMenu midasBlessingRevokeMenu;
 
@@ -36,6 +38,8 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(midasBlessingRevokeMenu, this);
         this.midasAbilityListener = new MidasAbilityListener(this);
         getServer().getPluginManager().registerEvents(midasAbilityListener, this);
+        this.speedDemonAbilityListener = new SpeedDemonAbilityListener(this);
+        getServer().getPluginManager().registerEvents(speedDemonAbilityListener, this);
         this.artifactAbilityListener = new ArtifactAbilityListener(this);
         this.silenceAbilityListener = new SilenceAbilityListener(this);
         ShadowHarvesterAbilityListener shadowHarvesterAbilityListener = new ShadowHarvesterAbilityListener(this);
@@ -63,6 +67,9 @@ public final class SecretsPlugin extends JavaPlugin {
     public boolean resetArtifactCooldowns(org.bukkit.entity.Player player, String artifactId) {
         if ("midas".equalsIgnoreCase(artifactId)) {
             return midasAbilityListener != null && midasAbilityListener.resetCooldowns(player);
+        }
+        if ("speed_demon".equalsIgnoreCase(artifactId)) {
+            return speedDemonAbilityListener != null && speedDemonAbilityListener.resetCooldowns(player);
         }
         if ("silence".equalsIgnoreCase(artifactId)) {
             return silenceAbilityListener != null && silenceAbilityListener.resetCooldowns(player, artifactId);
