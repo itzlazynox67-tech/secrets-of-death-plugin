@@ -213,7 +213,8 @@ public final class ArtifactAbilityListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDeathEmbraceSplash(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
-        if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))) return;
+        if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))
+                && !"deaths_embrace".equals(id(player.getInventory().getItemInOffHand()))) return;
         if (!(event.getEntity() instanceof Player struckPlayer)) return;
         if (deathEmbraceSplashProcessing.contains(player.getUniqueId())) return;
 
@@ -226,7 +227,7 @@ public final class ArtifactAbilityListener implements Listener {
 
         UUID attackerId = player.getUniqueId();
         UUID struckId = struckPlayer.getUniqueId();
-        Location center = struckPlayer.getLocation().clone();
+        Location center = player.getLocation().clone();
         player.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
         spawnDeathEmbraceVisual(center);
 
@@ -238,11 +239,11 @@ public final class ArtifactAbilityListener implements Listener {
 
             deathEmbraceSplashProcessing.add(attackerId);
             try {
-                for (Entity entity : center.getWorld().getNearbyEntities(center, 15, 15, 15)) {
+                for (Entity entity : center.getWorld().getNearbyEntities(center, 20, 20, 20)) {
                     if (!(entity instanceof Player nearbyPlayer)
                             || nearbyPlayer.getUniqueId().equals(attackerId)
                             || nearbyPlayer.getUniqueId().equals(struckId)) continue;
-                    if (nearbyPlayer.getLocation().distanceSquared(center) > 225.0) continue;
+                    if (nearbyPlayer.getLocation().distanceSquared(center) > 400.0) continue;
                     if (plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
 
                     // Match the original hit's final damage exactly, without recalculating
