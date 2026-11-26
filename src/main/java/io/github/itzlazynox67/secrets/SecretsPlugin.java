@@ -4,6 +4,7 @@ import io.github.itzlazynox67.secrets.commands.SecretsCommand;
 import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import io.github.itzlazynox67.secrets.items.ArtifactAbilityListener;
 import io.github.itzlazynox67.secrets.items.SilenceAbilityListener;
+import io.github.itzlazynox67.secrets.items.ShadowHarvesterAbilityListener;
 import io.github.itzlazynox67.secrets.items.ExplosionProtectionManager;
 import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
 import io.github.itzlazynox67.secrets.items.CollectionMenu;
@@ -25,8 +26,10 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ProtectionRevokeMenu(this), this);
         this.artifactAbilityListener = new ArtifactAbilityListener(this);
         this.silenceAbilityListener = new SilenceAbilityListener(this);
+        ShadowHarvesterAbilityListener shadowHarvesterAbilityListener = new ShadowHarvesterAbilityListener(this);
         getServer().getPluginManager().registerEvents(artifactAbilityListener, this);
         getServer().getPluginManager().registerEvents(silenceAbilityListener, this);
+        getServer().getPluginManager().registerEvents(shadowHarvesterAbilityListener, this);
         CollectionMenu collectionMenu = new CollectionMenu(this);
         getServer().getPluginManager().registerEvents(collectionMenu, this);
         if (getCommand("artifacts") != null) getCommand("artifacts").setExecutor(collectionMenu);
