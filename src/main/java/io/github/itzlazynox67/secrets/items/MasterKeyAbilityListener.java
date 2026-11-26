@@ -27,10 +27,11 @@ public final class MasterKeyAbilityListener implements Listener {
     private static final long EXILE_COOLDOWN = 30L * 60 * 1000;
     private static final long EXILE_DURATION_TICKS = 20L * 60 * 10;
     private static final String WORLD_NAME = "master_key_prison";
-    private static final String GUI_TITLE = ChatColor.DARK_PURPLE + "Master Key - Choose an item";
+    private static final String GUI_TITLE = ChatColor.DARK_PURPLE + "Master Key - Lock an item";
+    private static final String UNLOCK_GUI_TITLE = ChatColor.DARK_GREEN + "Master Key - Unlock an item";
     private final SecretsPlugin plugin;
     private final NamespacedKey artifactKey;
-    private final Map<Material, Long> lockedMaterials = new EnumMap<>(Material.class);
+    private final Map<Material, Map<UUID, Long>> lockedMaterials = new EnumMap<>(Material.class);
     private final Map<UUID, Long> lockCooldowns = new HashMap<>();
     private final Map<UUID, Long> exileCooldowns = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
@@ -44,7 +45,8 @@ public final class MasterKeyAbilityListener implements Listener {
         new BukkitRunnable() {
             @Override public void run() {
                 long now = System.currentTimeMillis();
-                lockedMaterials.entrySet().removeIf(e -> e.getValue() <= now);
+                lockedMaterials.values().forEach(targets -> targets.entrySet().removeIf(e -> e.getValue() <= now));
+                lockedMaterials.entrySet().removeIf(e -> e.getValue().isEmpty());
                 for (UUID id : new ArrayList<>(returnAt.keySet())) {
                     if (returnAt.get(id) <= now && Bukkit.getPlayer(id) != null) returnPlayer(id);
                 }
@@ -71,11 +73,6 @@ public final class MasterKeyAbilityListener implements Listener {
     }
 
     private void openItemMenu(Player player, int page) {
-        long ready = lockCooldowns.getOrDefault(player.getUniqueId(), 0L);
-        if (System.currentTimeMillis() < ready) {
-            player.sendMessage(ChatColor.RED + "Item Lock cooldown: " + remaining(ready));
-            return;
-        }
         List<Material> choices = Arrays.stream(Material.values())
                 .filter(m -> m.isItem() && m != Material.AIR && !m.isLegacy() && m != Material.KNOWLEDGE_BOOK)
                 .sorted(Comparator.comparing(Material::name)).toList();
@@ -89,6 +86,36 @@ public final class MasterKeyAbilityListener implements Listener {
             ItemMeta meta = icon.getItemMeta();
             meta.setDisplayName(ChatColor.YELLOW + pretty(material));
             meta.setLore(List.of(ChatColor.GRAY + "Lock this item for 1 hour", ChatColor.DARK_GRAY + "MASTER_LOCK:" + material.name()));
+            icon.setItemMeta(meta);
+            menu.setItem(i - start, icon);
+        }
+        if (page > 0) menu.setItem(45, named(Material.ARROW, ChatColor.YELLOW + "Previous page"));
+        menu.setItem(48, named(Material.LIME_DYE, ChatColor.GREEN + "Unlock an item"));
+        menu.setItem(49, named(Material.BARRIER, ChatColor.RED + "Close"));
+        if (page + 1 < pages) menu.setItem(53, named(Material.ARROW, ChatColor.YELLOW + "Next page"));
+        player.openInventory(menu);
+    }
+
+    private void openUnlockMenu(Player player, int page) {
+        List<Material> choices = lockedMaterials.entrySet().stream()
+                .filter(e -> !e.getValue().isEmpty())
+                .map(Map.Entry::getKey)
+                .sorted(Comparator.comparing(Material::name)).toList();
+        if (choices.isEmpty()) {
+            player.sendMessage(ChatColor.GRAY + "There are no items currently locked by the Master Key.");
+            return;
+        }
+        int pages = (choices.size() + 44) / 45;
+        page = Math.max(0, Math.min(page, pages - 1));
+        Inventory menu = Bukkit.createInventory(null, 54, UNLOCK_GUI_TITLE + " (" + (page + 1) + "/" + pages + ")");
+        int start = page * 45;
+        for (int i = start; i < Math.min(start + 45, choices.size()); i++) {
+            Material material = choices.get(i);
+            ItemStack icon = new ItemStack(material);
+            ItemMeta meta = icon.getItemMeta();
+            meta.setDisplayName(ChatColor.GREEN + pretty(material));
+            meta.setLore(List.of(ChatColor.GRAY + "Click to unlock this item for everyone affected",
+                    ChatColor.DARK_GRAY + "MASTER_UNLOCK:" + material.name()));
             icon.setItemMeta(meta);
             menu.setItem(i - start, icon);
         }
@@ -109,24 +136,41 @@ public final class MasterKeyAbilityListener implements Listener {
     @EventHandler
     public void onMenuClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
-        if (!title.startsWith(GUI_TITLE)) return;
+        boolean unlockMenu = title.startsWith(UNLOCK_GUI_TITLE);
+        if (!title.startsWith(GUI_TITLE) && !unlockMenu) return;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player) || event.getClickedInventory() == null
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
+        if (!unlockMenu && event.getSlot() == 48) {
+            openUnlockMenu(player, 0);
+            return;
+        }
         if (event.getSlot() == 45 || event.getSlot() == 49 || event.getSlot() == 53) {
             String pageText = title.substring(title.lastIndexOf('(') + 1, title.lastIndexOf('/'));
             int page = Integer.parseInt(pageText.trim()) - 1;
-            if (event.getSlot() == 45 && page > 0) openItemMenu(player, page - 1);
-            else if (event.getSlot() == 53) openItemMenu(player, page + 1);
-            else if (event.getSlot() == 49) player.closeInventory();
+            if (event.getSlot() == 45 && page > 0) {
+                if (unlockMenu) openUnlockMenu(player, page - 1); else openItemMenu(player, page - 1);
+            } else if (event.getSlot() == 53) {
+                if (unlockMenu) openUnlockMenu(player, page + 1); else openItemMenu(player, page + 1);
+            } else if (event.getSlot() == 49) player.closeInventory();
             return;
         }
         List<String> lore = clicked.getItemMeta().getLore();
         if (lore != null) {
             for (String line : lore) {
                 String plain = ChatColor.stripColor(line);
+                if (plain != null && plain.startsWith("MASTER_UNLOCK:")) {
+                    Material material = Material.matchMaterial(plain.substring("MASTER_UNLOCK:".length()));
+                    if (material != null) {
+                        lockedMaterials.remove(material);
+                        saveState();
+                        player.closeInventory();
+                        player.sendMessage(ChatColor.GREEN + pretty(material) + " has been unlocked for everyone.");
+                    }
+                    return;
+                }
                 if (plain != null && plain.startsWith("MASTER_LOCK:")) {
                     Material material = Material.matchMaterial(plain.substring("MASTER_LOCK:".length()));
                     if (material != null) {
@@ -137,12 +181,22 @@ public final class MasterKeyAbilityListener implements Listener {
                             player.sendMessage(ChatColor.RED + "Item Lock cooldown: " + remaining(ready));
                             return;
                         }
-                        lockedMaterials.put(material, now + ITEM_LOCK_DURATION);
+                        List<Player> affected = player.getWorld().getPlayers().stream()
+                                .filter(target -> !target.getUniqueId().equals(player.getUniqueId()))
+                                .filter(target -> target.getLocation().distanceSquared(player.getLocation()) <= 10000.0)
+                                .toList();
+                        if (affected.isEmpty()) {
+                            player.closeInventory();
+                            player.sendMessage(ChatColor.YELLOW + "There are no other players within 100 blocks to lock this item for.");
+                            return;
+                        }
+                        Map<UUID, Long> targets = lockedMaterials.computeIfAbsent(material, ignored -> new HashMap<>());
+                        for (Player target : affected) targets.put(target.getUniqueId(), now + ITEM_LOCK_DURATION);
                         lockCooldowns.put(player.getUniqueId(), now + ITEM_LOCK_COOLDOWN);
                         saveState();
                         player.closeInventory();
-                        player.sendMessage(ChatColor.LIGHT_PURPLE + pretty(material) + " is locked for everyone for 1 hour.");
-                        player.sendMessage(ChatColor.GRAY + "Item Lock cooldown: 3 days.");
+                        player.sendMessage(ChatColor.LIGHT_PURPLE + pretty(material) + " is locked for " + affected.size() + " nearby player(s) for 1 hour.");
+                        player.sendMessage(ChatColor.GRAY + "You are immune to your own Item Lock. Cooldown: 3 days.");
                     }
                     return;
                 }
@@ -152,13 +206,13 @@ public final class MasterKeyAbilityListener implements Listener {
 
     @EventHandler
     public void onMenuDrag(InventoryDragEvent event) {
-        if (event.getView().getTitle().startsWith(GUI_TITLE)) event.setCancelled(true);
+        if (event.getView().getTitle().startsWith(GUI_TITLE) || event.getView().getTitle().startsWith(UNLOCK_GUI_TITLE)) event.setCancelled(true);
     }
 
     @EventHandler
     public void blockLockedInventoryUse(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (isLocked(event.getCurrentItem()) || isLocked(event.getCursor())) {
+        if (isLocked(player, event.getCurrentItem()) || isLocked(player, event.getCursor())) {
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "That item is locked by the Master Key.");
         }
@@ -265,47 +319,49 @@ public final class MasterKeyAbilityListener implements Listener {
     @EventHandler
     public void blockLockedInteract(PlayerInteractEvent event) {
         if (event.getHand() == null || event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) return;
-        if (isLocked(event.getItem())) { event.setCancelled(true); event.getPlayer().sendActionBar(net.kyori.adventure.text.Component.text("That item is locked by the Master Key.")); }
+        if (isLocked(event.getPlayer(), event.getItem())) { event.setCancelled(true); event.getPlayer().sendActionBar(net.kyori.adventure.text.Component.text("That item is locked by the Master Key.")); }
     }
 
     @EventHandler
     public void blockLockedHeld(PlayerItemHeldEvent event) {
         ItemStack next = event.getPlayer().getInventory().getItem(event.getNewSlot());
-        if (isLocked(next)) { event.setCancelled(true); event.getPlayer().sendMessage(ChatColor.RED + "That item is locked by the Master Key."); }
+        if (isLocked(event.getPlayer(), next)) { event.setCancelled(true); event.getPlayer().sendMessage(ChatColor.RED + "That item is locked by the Master Key."); }
     }
 
     @EventHandler
-    public void blockLockedConsume(PlayerItemConsumeEvent event) { if (isLocked(event.getItem())) event.setCancelled(true); }
+    public void blockLockedConsume(PlayerItemConsumeEvent event) { if (isLocked(event.getPlayer(), event.getItem())) event.setCancelled(true); }
 
     @EventHandler
-    public void blockLockedPlace(BlockPlaceEvent event) { if (isLocked(event.getItemInHand())) event.setCancelled(true); }
+    public void blockLockedPlace(BlockPlaceEvent event) { if (isLocked(event.getPlayer(), event.getItemInHand())) event.setCancelled(true); }
 
     @EventHandler
-    public void blockLockedBreak(BlockBreakEvent event) { if (isLocked(event.getPlayer().getInventory().getItemInMainHand())) event.setCancelled(true); }
+    public void blockLockedBreak(BlockBreakEvent event) { if (isLocked(event.getPlayer(), event.getPlayer().getInventory().getItemInMainHand())) event.setCancelled(true); }
 
     @EventHandler
     public void blockLockedShoot(EntityShootBowEvent event) {
-        if (event.getEntity() instanceof Player player && isLocked(event.getBow())) event.setCancelled(true);
+        if (event.getEntity() instanceof Player player && isLocked(player, event.getBow())) event.setCancelled(true);
     }
 
     @EventHandler
     public void blockLockedAttack(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player player && isLocked(player.getInventory().getItemInMainHand())) event.setCancelled(true);
+        if (event.getDamager() instanceof Player player && isLocked(player, player.getInventory().getItemInMainHand())) event.setCancelled(true);
     }
 
     @EventHandler
     public void blockLockedDrop(PlayerDropItemEvent event) {
-        if (isLocked(event.getItemDrop().getItemStack())) event.setCancelled(true);
+        if (isLocked(event.getPlayer(), event.getItemDrop().getItemStack())) event.setCancelled(true);
     }
 
     @EventHandler
     public void blockLockedSwap(PlayerSwapHandItemsEvent event) {
-        if (isLocked(event.getMainHandItem()) || isLocked(event.getOffHandItem())) event.setCancelled(true);
+        if (isLocked(event.getPlayer(), event.getMainHandItem()) || isLocked(event.getPlayer(), event.getOffHandItem())) event.setCancelled(true);
     }
 
-    private boolean isLocked(ItemStack item) {
-        if (item == null || item.getType().isAir()) return false;
-        Long until = lockedMaterials.get(item.getType());
+    private boolean isLocked(Player player, ItemStack item) {
+        if (player == null || item == null || item.getType().isAir()) return false;
+        Map<UUID, Long> targets = lockedMaterials.get(item.getType());
+        if (targets == null) return false;
+        Long until = targets.get(player.getUniqueId());
         return until != null && until > System.currentTimeMillis();
     }
 
@@ -329,11 +385,19 @@ public final class MasterKeyAbilityListener implements Listener {
     }
 
     private void loadState() {
-        for (String key : plugin.getConfig().getConfigurationSection("master-key.locked-items") == null
-                ? Collections.<String>emptySet() : plugin.getConfig().getConfigurationSection("master-key.locked-items").getKeys(false)) {
-            Material material = Material.matchMaterial(key);
-            long until = plugin.getConfig().getLong("master-key.locked-items." + key);
-            if (material != null && until > System.currentTimeMillis()) lockedMaterials.put(material, until);
+        if (plugin.getConfig().getConfigurationSection("master-key.locked-items") != null) {
+            for (String materialKey : plugin.getConfig().getConfigurationSection("master-key.locked-items").getKeys(false)) {
+                Material material = Material.matchMaterial(materialKey);
+                String path = "master-key.locked-items." + materialKey;
+                if (material == null || plugin.getConfig().getConfigurationSection(path) == null) continue;
+                for (String uuidText : plugin.getConfig().getConfigurationSection(path).getKeys(false)) {
+                    try {
+                        UUID id = UUID.fromString(uuidText);
+                        long until = plugin.getConfig().getLong(path + "." + uuidText);
+                        if (until > System.currentTimeMillis()) lockedMaterials.computeIfAbsent(material, ignored -> new HashMap<>()).put(id, until);
+                    } catch (IllegalArgumentException ignored) { }
+                }
+            }
         }
         for (String key : plugin.getConfig().getConfigurationSection("master-key.lock-cooldowns") == null
                 ? Collections.<String>emptySet() : plugin.getConfig().getConfigurationSection("master-key.lock-cooldowns").getKeys(false)) {
@@ -353,7 +417,12 @@ public final class MasterKeyAbilityListener implements Listener {
     }
 
     private void saveState() {
-        for (Map.Entry<Material, Long> entry : lockedMaterials.entrySet()) plugin.getConfig().set("master-key.locked-items." + entry.getKey().name(), entry.getValue());
+        plugin.getConfig().set("master-key.locked-items", null);
+        for (Map.Entry<Material, Map<UUID, Long>> entry : lockedMaterials.entrySet()) {
+            for (Map.Entry<UUID, Long> target : entry.getValue().entrySet()) {
+                plugin.getConfig().set("master-key.locked-items." + entry.getKey().name() + "." + target.getKey(), target.getValue());
+            }
+        }
         for (Map.Entry<UUID, Long> entry : lockCooldowns.entrySet()) plugin.getConfig().set("master-key.lock-cooldowns." + entry.getKey(), entry.getValue());
         for (Map.Entry<UUID, Long> entry : exileCooldowns.entrySet()) plugin.getConfig().set("master-key.exile-cooldowns." + entry.getKey(), entry.getValue());
         for (Map.Entry<UUID, Location> entry : returnLocations.entrySet()) plugin.getConfig().set("master-key.return-locations." + entry.getKey(), entry.getValue());
