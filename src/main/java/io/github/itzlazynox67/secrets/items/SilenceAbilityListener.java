@@ -50,6 +50,9 @@ public final class SilenceAbilityListener implements Listener {
                 }
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (hasSilence(player)) {
+                        // Silence holders are immune to Darkness and Blindness.
+                        player.removePotionEffect(PotionEffectType.DARKNESS);
+                        player.removePotionEffect(PotionEffectType.BLINDNESS);
                         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1, true, false, true));
                         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 60, 0, true, false, true));
                         Location aura = player.getLocation().add(0, 1.0, 0);
@@ -88,6 +91,17 @@ public final class SilenceAbilityListener implements Listener {
             if (targetTeam.equals(holderTeam)) return true;
         }
         return false;
+    }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = true)
+    public void preventDarknessAndBlindness(org.bukkit.event.entity.EntityPotionEffectEvent event) {
+        if (!(event.getEntity() instanceof Player player) || !hasSilence(player)) return;
+        PotionEffect effect = event.getNewEffect();
+        if (effect == null) return;
+        PotionEffectType type = effect.getType();
+        if (type.equals(PotionEffectType.DARKNESS) || type.equals(PotionEffectType.BLINDNESS)) {
+            event.setCancelled(true);
+        }
     }
 
     public boolean resetCooldowns(Player player, String artifactId) {
