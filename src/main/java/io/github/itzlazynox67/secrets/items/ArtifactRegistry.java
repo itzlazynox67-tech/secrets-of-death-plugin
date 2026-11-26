@@ -37,6 +37,7 @@ public final class ArtifactRegistry {
         register("hellfire", "Hellfire", "modeling:hellfire", "A standalone fire-themed collectible. This item has no active gameplay effect in this starter.");
         register("phoenix_wings", "Phoenix Wings", "modeling:phoenix_wings", "A named collectible from the Secrets collection.");
         register("silence", "Silence", "modeling:silence", "A Warden-themed artifact with sonic, debuff, summoning, and Rampage abilities.");
+        register("shadow_harvester", "Shadow Harvester", "modeling:shadow_harvester", "A standalone shadow artifact with Shadow Teleport and Shadow Throw.");
         register("cycletation", "Cycletation", "modeling:cycle", "A two-page weather and time artifact book containing God's Will and the Forged Armor rewards.");
         register("godswill", "God's Will", "minecraft:trident", "A special trident reward from the Cycletation artifact; strikes nearby players with lightning while raining.");
         register("explosion_gift", "Explosion Protection Gift", "modeling:explosion_gift", "A collectible token reserved for the planned protection feature.");
@@ -72,6 +73,7 @@ public final class ArtifactRegistry {
             case "blastforge" -> Material.NETHERITE_PICKAXE;
             case "phoenix_wings" -> Material.ELYTRA;
             case "silence" -> Material.NETHERITE_AXE;
+            case "shadow_harvester" -> Material.MACE;
             case "godswill" -> Material.TRIDENT;
             case "cycletation" -> Material.WRITTEN_BOOK;
             case "death_helmet" -> Material.NETHERITE_HELMET;
@@ -92,10 +94,19 @@ public final class ArtifactRegistry {
             case "book" -> "&f&o" + definition.displayName();
             case "deaths_embrace" -> "&4&lDeath's &0&lEmbrace";
             case "silence" -> "&3&lS̷i̷l̷e̷n̷c̷e̷";
+            case "shadow_harvester" -> "&5&lShadow Harvester";
             case "godswill" -> "&b&lGod's Will";
             case "cycletation" -> "&b&lCycletation";
             default -> "&c&o" + definition.displayName();
         };
+        if (definition.id().equals("shadow_harvester")) {
+            meta.addAttributeModifier(org.bukkit.attribute.Attribute.ATTACK_DAMAGE,
+                    new org.bukkit.attribute.AttributeModifier(
+                            new NamespacedKey(plugin, "shadow_harvester_sword_damage"),
+                            2.0,
+                            org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                            org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
+        }
         if (definition.id().equals("deaths_embrace")) {
             meta.displayName(deathEmbraceGradient());
         } else {
@@ -114,7 +125,7 @@ public final class ArtifactRegistry {
 
         // Only the book and Death's Embrace use custom resource-pack models.
         // All other artifacts keep their normal vanilla Minecraft item textures.
-        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence")) {
+        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester")) {
             NamespacedKey modelKey = NamespacedKey.fromString(definition.modelId());
             if (modelKey != null) {
                 meta.setItemModel(modelKey);
