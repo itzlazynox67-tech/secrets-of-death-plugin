@@ -112,8 +112,8 @@ public final class MidasAbilityListener implements Listener {
             @Override public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!hasMidas(player) || !nearGold(player.getLocation())) continue;
-                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, true));
-                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, false, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.STRENGTH, 60, 2, true, false, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 60, 1, true, false, true));
                     player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SPEED, 60, 1, true, false, true));
                     player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 5, 0.3, 0.45, 0.3, 0.01);
                 }
