@@ -311,10 +311,8 @@ public final class SilenceAbilityListener implements Listener {
                     if (block.getType().isAir() || block.getState() instanceof org.bukkit.block.TileState) continue;
                     BlockState original = block.getState();
                     snapshots.add(new BlockSnapshot(world, x, y, z, original));
-                    // Mostly ordinary sculk, with occasional shriekers and sensors.
-                    int roll = ThreadLocalRandom.current().nextInt(100);
-                    Material domainBlock = roll < 90 ? Material.SCULK
-                            : roll < 95 ? Material.SCULK_SHRIEKER : Material.SCULK_SENSOR;
+                    // Standard Silence Domain terrain: ordinary sculk only.
+                    Material domainBlock = Material.SCULK;
                     block.setType(domainBlock, false);
                     processed++;
                 }
