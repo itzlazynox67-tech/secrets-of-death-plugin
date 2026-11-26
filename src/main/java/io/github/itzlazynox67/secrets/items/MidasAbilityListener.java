@@ -262,21 +262,23 @@ public final class MidasAbilityListener implements Listener {
         long expiresAt = System.currentTimeMillis() + 60_000L;
         int radius = (int) Math.ceil(CATACLYSM_RADIUS);
         int centerX = center.getBlockX();
-        int centerY = center.getBlockY();
+        // Center the sphere on the block beneath the player's feet so the
+        // visible ground is included, not just the space around their body.
+        int centerY = center.getBlockY() - 1;
         int centerZ = center.getBlockZ();
 
-        // Match Silence's domain-style terrain conversion: only existing solid
-        // blocks are replaced, in a sphere, and every changed block is temporary.
         new BukkitRunnable() {
             int cursor = 0;
+            int changed = 0;
             final int diameter = radius * 2 + 1;
             final int total = diameter * diameter * diameter;
 
             @Override
             public void run() {
-                int processed = 0;
-                while (cursor < total && processed < 2000) {
+                int examined = 0;
+                while (cursor < total && examined < 2500) {
                     int index = cursor++;
+                    examined++;
                     int dx = index / (diameter * diameter) - radius;
                     int dy = (index / diameter) % diameter - radius;
                     int dz = index % diameter - radius;
@@ -296,14 +298,13 @@ public final class MidasAbilityListener implements Listener {
                     if (existing == null) {
                         temporaryGoldBlocks.put(position, new TemporaryGold(block.getState(), expiresAt));
                     } else {
-                        // Keep the first original block state, but extend its gold duration.
                         existing.expiresAt = expiresAt;
                     }
 
                     if (block.getType() != Material.GOLD_BLOCK) {
                         block.setType(Material.GOLD_BLOCK, false);
+                        changed++;
                     }
-                    processed++;
                 }
 
                 if (cursor >= total) {
@@ -311,6 +312,10 @@ public final class MidasAbilityListener implements Listener {
                     world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.25f);
                     world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0),
                             180, CATACLYSM_RADIUS / 2, 1.2, CATACLYSM_RADIUS / 2, 0.06);
+                    Player owner = Bukkit.getPlayer(center.getWorld().getUID()) == null ? null : null;
+                    // The surrounding Cataclysm activation already reports its hit count;
+                    // this confirmation makes terrain conversion visible in the action log.
+                    plugin.getLogger().fine("Golden Cataclysm converted " + changed + " blocks to temporary gold.");
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
