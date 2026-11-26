@@ -37,6 +37,7 @@ public final class MidasAbilityListener implements Listener {
     private static final long ETERNITY_DURATION = 60_000L;
     private static final long ETERNITY_COOLDOWN = 90_000L;
     private static final double ETERNITY_RADIUS = 16.0;
+    private static final double GOLD_AURA_RADIUS = 20.0;
     private static final long CATACLYSM_COOLDOWN = 120_000L;
     private static final double CATACLYSM_RADIUS = 14.0;
     private final SecretsPlugin plugin;
@@ -47,7 +48,7 @@ public final class MidasAbilityListener implements Listener {
     private final Map<UUID, Long> reversalCooldowns = new HashMap<>();
     private final Map<UUID, Long> eternityCooldowns = new HashMap<>();
     private final Map<UUID, Long> cataclysmCooldowns = new HashMap<>();
-    private final Map<UUID, Long> frozenUntil = new HashMap<>();
+    private final Set<UUID> frozenPlayers = new HashSet<>();
     private final Set<UUID> reflectedDamage = new HashSet<>();
     private final Map<BlockPosition, TemporaryGold> temporaryGoldBlocks = new HashMap<>();
 
@@ -81,15 +82,6 @@ public final class MidasAbilityListener implements Listener {
                     return true;
                 });
                 reversalExpiry.entrySet().removeIf(entry -> entry.getValue() <= now);
-                frozenUntil.entrySet().removeIf(entry -> {
-                    if (entry.getValue() > now) return false;
-                    Player player = Bukkit.getPlayer(entry.getKey());
-                    if (player != null) {
-                        player.sendMessage(ChatColor.GOLD + "Golden Eternity has ended.");
-                        player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 18, 0.4, 0.6, 0.4, 0.02);
-                    }
-                    return true;
-                });
             }
         }.runTaskTimer(plugin, 5L, 5L);
 
@@ -132,14 +124,15 @@ public final class MidasAbilityListener implements Listener {
 
     private boolean nearGold(Location center) {
         World world = center.getWorld();
+        int radius = (int) GOLD_AURA_RADIUS;
         int cx = center.getBlockX(), cy = center.getBlockY(), cz = center.getBlockZ();
-        for (int x = cx - 10; x <= cx + 10; x++) {
-            for (int y = Math.max(world.getMinHeight(), cy - 10); y <= Math.min(world.getMaxHeight() - 1, cy + 10); y++) {
-                for (int z = cz - 10; z <= cz + 10; z++) {
+        for (int x = cx - radius; x <= cx + radius; x++) {
+            for (int y = Math.max(world.getMinHeight(), cy - radius); y <= Math.min(world.getMaxHeight() - 1, cy + radius); y++) {
+                for (int z = cz - radius; z <= cz + radius; z++) {
                     double dx = x + 0.5 - center.getX();
                     double dy = y + 0.5 - center.getY();
                     double dz = z + 0.5 - center.getZ();
-                    if (dx * dx + dy * dy + dz * dz > 100) continue;
+                    if (dx * dx + dy * dy + dz * dz > GOLD_AURA_RADIUS * GOLD_AURA_RADIUS) continue;
                     Material type = world.getBlockAt(x, y, z).getType();
                     if (type == Material.GOLD_BLOCK || type == Material.RAW_GOLD_BLOCK) return true;
                 }
@@ -217,7 +210,7 @@ public final class MidasAbilityListener implements Listener {
         for (Player target : player.getWorld().getPlayers()) {
             if (target.equals(player) || target.getLocation().distanceSquared(center) > ETERNITY_RADIUS * ETERNITY_RADIUS
                     || plugin.getMidasBlessingManager().isProtected(target)) continue;
-            frozenUntil.put(target.getUniqueId(), now + ETERNITY_DURATION);
+            frozenPlayers.add(target.getUniqueId());
             target.setVelocity(new Vector(0, 0, 0));
             target.sendMessage(ChatColor.GOLD + "Golden Eternity has frozen you in place!");
             target.getWorld().spawnParticle(Particle.WAX_ON, target.getLocation().add(0, 1, 0), 45, 0.45, 0.8, 0.45, 0.02);
@@ -225,7 +218,7 @@ public final class MidasAbilityListener implements Listener {
         }
         player.getWorld().playSound(center, Sound.BLOCK_BEACON_POWER_SELECT, 1.3f, 0.65f);
         player.getWorld().spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0), 120, 2.5, 1.5, 2.5, 0.08);
-        player.sendMessage(ChatColor.GOLD + "Golden Eternity froze " + frozen + " player(s) within 16 blocks for 60 seconds. Golden food can break the freeze.");
+        player.sendMessage(ChatColor.GOLD + "Golden Eternity froze " + frozen + " player(s) within 16 blocks until they eat golden food.");
     }
 
     private void activateCataclysm(Player player) {
@@ -350,18 +343,47 @@ public final class MidasAbilityListener implements Listener {
         event.blockList().removeIf(this::isTemporaryGold);
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void cancelFreezeWithGoldenFood(PlayerItemConsumeEvent event) {
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void handleGoldenFood(PlayerItemConsumeEvent event) {
+        Player player = event.getPlayer();
         Material food = event.getItem().getType();
         if (food != Material.GOLDEN_APPLE && food != Material.ENCHANTED_GOLDEN_APPLE
                 && food != Material.GOLDEN_CARROT) return;
-        UUID id = event.getPlayer().getUniqueId();
-        if (frozenUntil.remove(id) != null) {
-            Player player = event.getPlayer();
+
+        UUID id = player.getUniqueId();
+        if (frozenPlayers.remove(id)) {
             player.sendMessage(ChatColor.GOLD + "The gold in your food shattered Golden Eternity!");
             player.getWorld().spawnParticle(Particle.WAX_OFF, player.getLocation().add(0, 1, 0), 65, 0.6, 0.8, 0.6, 0.04);
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1.0f, 1.4f);
         }
+
+        if (!hasMidas(player)) return;
+        // Apply the enhanced food bonus one tick later, after vanilla finishes eating.
+        new BukkitRunnable() {
+            @Override public void run() {
+                if (!player.isOnline()) return;
+                if (food == Material.GOLDEN_APPLE) {
+                    // A normal golden apple is upgraded to enchanted-golden-apple strength.
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.ABSORPTION, 2400, 3, true, true, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 400, 1, true, true, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 6000, 0, true, true, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.FIRE_RESISTANCE, 6000, 0, true, true, true));
+                } else if (food == Material.ENCHANTED_GOLDEN_APPLE) {
+                    // Midas doubles the duration of an enchanted golden apple's bonus effects.
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.ABSORPTION, 4800, 3, true, true, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 800, 1, true, true, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 12000, 0, true, true, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.FIRE_RESISTANCE, 12000, 0, true, true, true));
+                } else {
+                    // Golden carrots provide double their normal food and saturation value.
+                    player.setFoodLevel(Math.min(20, player.getFoodLevel() + 6));
+                    player.setSaturation(Math.min(player.getFoodLevel(), player.getSaturation() + 14.4f));
+                }
+                player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 35, 0.45, 0.65, 0.45, 0.04);
+                player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.8f);
+                player.sendMessage(ChatColor.GOLD + "Midas empowered your golden food!");
+            }
+        }.runTaskLater(plugin, 1L);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -401,8 +423,7 @@ public final class MidasAbilityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void keepFrozenPlayersStill(PlayerMoveEvent event) {
-        Long until = frozenUntil.get(event.getPlayer().getUniqueId());
-        if (until == null || until <= System.currentTimeMillis() || event.getTo() == null) return;
+        if (!frozenPlayers.contains(event.getPlayer().getUniqueId()) || event.getTo() == null) return;
         Location from = event.getFrom();
         Location to = event.getTo();
         if (from.getWorld() != to.getWorld() || from.distanceSquared(to) > 0.0001) {
@@ -412,7 +433,7 @@ public final class MidasAbilityListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void stopFrozenVelocity(PlayerVelocityEvent event) {
-        if (frozenUntil.getOrDefault(event.getPlayer().getUniqueId(), 0L) > System.currentTimeMillis()) {
+        if (frozenPlayers.contains(event.getPlayer().getUniqueId())) {
             event.setVelocity(new Vector(0, 0, 0));
         }
     }
@@ -420,7 +441,7 @@ public final class MidasAbilityListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
-        frozenUntil.remove(id);
+        frozenPlayers.remove(id);
         reversalExpiry.remove(id);
     }
 
