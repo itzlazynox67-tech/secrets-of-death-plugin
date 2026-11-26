@@ -46,7 +46,7 @@ public final class MasterKeyAbilityListener implements Listener {
                 long now = System.currentTimeMillis();
                 lockedMaterials.entrySet().removeIf(e -> e.getValue() <= now);
                 for (UUID id : new ArrayList<>(returnAt.keySet())) {
-                    if (returnAt.get(id) <= now) returnPlayer(id);
+                    if (returnAt.get(id) <= now && Bukkit.getPlayer(id) != null) returnPlayer(id);
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
@@ -115,6 +115,14 @@ public final class MasterKeyAbilityListener implements Listener {
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
+        if (event.getSlot() == 45 || event.getSlot() == 49 || event.getSlot() == 53) {
+            String pageText = title.substring(title.lastIndexOf('(') + 1, title.lastIndexOf('/'));
+            int page = Integer.parseInt(pageText.trim()) - 1;
+            if (event.getSlot() == 45 && page > 0) openItemMenu(player, page - 1);
+            else if (event.getSlot() == 53) openItemMenu(player, page + 1);
+            else if (event.getSlot() == 49) player.closeInventory();
+            return;
+        }
         List<String> lore = clicked.getItemMeta().getLore();
         if (lore != null) {
             for (String line : lore) {
@@ -140,16 +148,20 @@ public final class MasterKeyAbilityListener implements Listener {
                 }
             }
         }
-        String pageText = title.substring(title.lastIndexOf('(') + 1, title.lastIndexOf('/'));
-        int page = Integer.parseInt(pageText.trim()) - 1;
-        if (event.getSlot() == 45 && page > 0) openItemMenu(player, page - 1);
-        else if (event.getSlot() == 53) openItemMenu(player, page + 1);
-        else if (event.getSlot() == 49) player.closeInventory();
     }
 
     @EventHandler
     public void onMenuDrag(InventoryDragEvent event) {
         if (event.getView().getTitle().startsWith(GUI_TITLE)) event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void blockLockedInventoryUse(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (isLocked(event.getCurrentItem()) || isLocked(event.getCursor())) {
+            event.setCancelled(true);
+            player.sendMessage(ChatColor.RED + "That item is locked by the Master Key.");
+        }
     }
 
     private void exile(Player owner) {
