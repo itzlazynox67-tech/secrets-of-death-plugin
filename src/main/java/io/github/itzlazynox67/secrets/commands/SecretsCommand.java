@@ -61,6 +61,8 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             case "book" -> giveBookToSelf(sender);
             case "protection" -> protection(sender, args);
             case "revoke" -> openRevokeMenu(sender);
+            case "midasrevoke" -> openMidasRevokeMenu(sender);
+            case "midasprotection" -> midasProtection(sender, args);
             case "claim" -> claimItem(sender, args);
             case "resetcooldowns", "resetcooldown" -> resetCooldowns(sender, args);
             case "artifacts" -> openArtifacts(sender);
@@ -116,6 +118,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
                 : registry.createItem(id);
         giveOrDrop(target, item);
         if (id.equals("explosion_gift")) plugin.getProtectionManager().grant(sender instanceof Player player ? player : null, target);
+        if (id.equals("midas_blessing")) plugin.getMidasBlessingManager().grant(sender instanceof Player player ? player : null, target);
         sender.sendMessage(msg("&aGave &f" + definition.displayName() + " &ato &f" + target.getName() + "&a."));
     }
 
@@ -136,6 +139,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
                     : registry.createItem(definition.id());
             giveOrDrop(target, item);
             if (definition.id().equals("explosion_gift")) plugin.getProtectionManager().grant(sender instanceof Player player ? player : null, target);
+            if (definition.id().equals("midas_blessing")) plugin.getMidasBlessingManager().grant(sender instanceof Player player ? player : null, target);
         }
         sender.sendMessage(msg("&aGave the collectible set to &f" + target.getName() + "&a."));
     }
@@ -183,6 +187,14 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
             fireball.setYield(10.0f);
             fireball.setIsIncendiary(false);
             player.sendMessage(msg("&cHellfire launched!"));
+            return;
+        }
+        if (id.equals("midas_blessing")) {
+            ItemStack gift = registry.createItem("midas_blessing");
+            giveOrDrop(player, gift);
+            playClaimEffects(player);
+            plugin.getMidasBlessingManager().grant(player, player);
+            player.sendMessage(msg("&aYou received Midas Blessing. Keep its token in your inventory to stay immune to Midas abilities."));
             return;
         }
         if (id.equals("explosion_gift")) {
@@ -333,6 +345,27 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         new ProtectionRevokeMenu(plugin).open(player, 0);
     }
 
+    private void openMidasRevokeMenu(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(msg("&cOnly players can open the Midas revoke menu."));
+            return;
+        }
+        new io.github.itzlazynox67.secrets.items.MidasBlessingRevokeMenu(plugin).open(player, 0);
+    }
+
+    private void midasProtection(CommandSender sender, String[] args) {
+        if (args.length != 3 || !args[1].equalsIgnoreCase("revoke")) {
+            sender.sendMessage(msg("&cUsage: /secrets midasprotection revoke <player>"));
+            return;
+        }
+        org.bukkit.OfflinePlayer target = Bukkit.getOfflinePlayer(args[2]);
+        if (!target.hasPlayedBefore() && !target.isOnline()) {
+            sender.sendMessage(msg("&cThat player has not joined this server before."));
+            return;
+        }
+        plugin.getMidasBlessingManager().revoke(sender, target.getUniqueId(), args[2]);
+    }
+
     private void protection(CommandSender sender, String[] args) {
         if (args.length != 3 || !args[1].equalsIgnoreCase("revoke")) {
             sender.sendMessage(msg("&cUsage: /secrets protection revoke <player>"));
@@ -420,7 +453,9 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&f/" + label + " version &7- Show plugin version"));
         sender.sendMessage(msg("&f/" + label + " resetcooldowns <player> <artifact> &7- Reset an artifact's ability cooldowns"));
         sender.sendMessage(msg("&f/" + label + " revoke &7- Open protection revocation menu"));
-        sender.sendMessage(msg("&f/" + label + " protection revoke <player> &7- Revoke a gift you granted"));
+        sender.sendMessage(msg("&f/" + label + " protection revoke <player> &7- Revoke explosion protection"));
+        sender.sendMessage(msg("&f/" + label + " midasrevoke &7- Open the Midas Blessing revoke menu"));
+        sender.sendMessage(msg("&f/" + label + " midasprotection revoke <player> &7- Revoke Midas immunity"));
         if (sender.hasPermission("secrets.admin")) {
             sender.sendMessage(msg("&f/" + label + " give <player> <item> &7- Give one collectible"));
             sender.sendMessage(msg("&f/" + label + " giveall <player> &7- Give the full collection"));
@@ -435,7 +470,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
                                                  @NotNull String alias, @NotNull String[] args) {
         if (!sender.isOp()) return List.of();
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "artifacts", "items", "resetcooldowns", "resetcooldown"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "midasrevoke", "midasprotection", "artifacts", "items", "resetcooldowns", "resetcooldown"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
         }
@@ -451,7 +486,7 @@ public final class SecretsCommand implements CommandExecutor, TabCompleter {
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             return filter(registry.getDefinitions().stream().map(ArtifactDefinition::id).toList(), args[2]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("protection") && args[1].equalsIgnoreCase("revoke")) {
+        if (args.length == 3 && ((args[0].equalsIgnoreCase("protection") || args[0].equalsIgnoreCase("midasprotection")) && args[1].equalsIgnoreCase("revoke"))) {
             return filter(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList(), args[2]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("info")) {
