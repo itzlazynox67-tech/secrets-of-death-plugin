@@ -87,6 +87,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
 
         Location from = player.getLocation();
         Location to = destination.setDirection(direction);
+        from.getWorld().playSound(from, Sound.ENTITY_ENDERMAN_TELEPORT, 0.8f, 1.15f);
         player.setFallDistance(0);
         player.teleport(to);
         player.setFallDistance(0);
@@ -156,7 +157,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         UUID id = display.getUniqueId();
         ThrownWeapon state = new ThrownWeapon(player.getUniqueId(), weapon, display, originalSlot, direction);
         thrownWeapons.put(id, state);
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 0.65f);
+        player.getWorld().playSound(start, Sound.ITEM_TRIDENT_THROW, 1.0f, 0.85f);
         player.getWorld().spawnParticle(Particle.CRIT, start, 8, 0.12, 0.12, 0.12, 0.05);
 
         new BukkitRunnable() {
@@ -189,6 +190,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 if (entityHit != null && entityHit.getHitEntity() instanceof Player target) {
                     display.teleport(entityHit.getHitPosition().toLocation(previous.getWorld()));
                     spawnThrowTrail(display.getLocation());
+                    target.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_HIT, 1.0f, 0.8f);
+                    target.getWorld().playSound(target.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 0.75f, 1.35f);
                     pullPlayer(id, target);
                     cancel();
                     return;
@@ -196,6 +199,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 if (blockHit != null) {
                     display.teleport(blockHit.getHitPosition().toLocation(previous.getWorld()));
                     spawnThrowTrail(display.getLocation());
+                    display.getWorld().playSound(display.getLocation(), Sound.ITEM_TRIDENT_HIT_GROUND, 0.9f, 1.0f);
                     finishThrow(id);
                     cancel();
                     return;
@@ -308,7 +312,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
             Map<Integer, ItemStack> overflow = owner.getInventory().addItem(state.weapon);
             overflow.values().forEach(left -> owner.getWorld().dropItemNaturally(owner.getLocation(), left));
         }
-        owner.playSound(owner.getLocation(), Sound.ENTITY_ITEM_PICKUP, 0.8f, 1.2f);
+        owner.playSound(owner.getLocation(), Sound.ITEM_TRIDENT_RETURN, 0.9f, 1.0f);
     }
 
     @EventHandler
