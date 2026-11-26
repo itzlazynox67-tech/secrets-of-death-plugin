@@ -8,6 +8,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -25,6 +26,7 @@ public final class ChampionBladeAbilityListener implements Listener {
     private final NamespacedKey ownerKey;
     private final Map<UUID, UUID> owners = new HashMap<>();
     private final Map<UUID, String> tiers = new HashMap<>();
+    private final Set<UUID> bannedPlayers = new HashSet<>();
     private final Set<UUID> pendingInvites = new HashSet<>();
     private final Set<UUID> pendingManagement = new HashSet<>();
     private final Map<UUID, UUID> inviteTargets = new HashMap<>();
@@ -39,6 +41,10 @@ public final class ChampionBladeAbilityListener implements Listener {
             public void run() {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     UUID id=p.getUniqueId();
+                    if (bannedPlayers.contains(id)) {
+                        if (p.getGameMode() != GameMode.SPECTATOR) p.setGameMode(GameMode.SPECTATOR);
+                        continue;
+                    }
                     if (hasBlade(p)) {
                         p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 80, 2, true, false, true));
                         p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 80, 1, true, false, true));
@@ -60,6 +66,7 @@ public final class ChampionBladeAbilityListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 1L, 40L);
+        for (Player player : Bukkit.getOnlinePlayers()) enforceSpectatorBan(player);
     }
 
     private String id(ItemStack item) {
@@ -106,23 +113,40 @@ public final class ChampionBladeAbilityListener implements Listener {
         return a.equals(b) || (owners.containsKey(a) && owners.get(a).equals(owners.get(b)));
     }
     private void saveData() {
-        for (String k : new ArrayList<>(plugin.getConfig().getConfigurationSection("champions-blade.members")==null ? Set.<String>of() : plugin.getConfig().getConfigurationSection("champions-blade.members").getKeys(false)))
+        var section = plugin.getConfig().getConfigurationSection("champions-blade.members");
+        if (section != null) for (String k : new ArrayList<>(section.getKeys(false)))
             plugin.getConfig().set("champions-blade.members."+k, null);
         owners.forEach((member, owner) -> {
             plugin.getConfig().set("champions-blade.members."+member+".owner", owner.toString());
             plugin.getConfig().set("champions-blade.members."+member+".tier", tiers.getOrDefault(member,"LT5"));
         });
+        plugin.getConfig().set("champions-blade.banned", bannedPlayers.stream().map(UUID::toString).toList());
         plugin.saveConfig();
     }
     private void loadData() {
         var section=plugin.getConfig().getConfigurationSection("champions-blade.members");
-        if(section==null) return;
-        for(String key:section.getKeys(false)) try {
+        if(section!=null) for(String key:section.getKeys(false)) try {
             UUID member=UUID.fromString(key);
             UUID owner=UUID.fromString(section.getString(key+".owner"));
             owners.put(member,owner);
             tiers.put(member,section.getString(key+".tier","LT5"));
         } catch(Exception ignored) {}
+        for (String raw : plugin.getConfig().getStringList("champions-blade.banned")) {
+            try { bannedPlayers.add(UUID.fromString(raw)); } catch (IllegalArgumentException ignored) {}
+        }
+    }
+
+    private void enforceSpectatorBan(Player player) {
+        if (!bannedPlayers.contains(player.getUniqueId())) return;
+        player.setGameMode(GameMode.SPECTATOR);
+        player.sendMessage(ChatColor.GOLD + "You have received justice.");
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        if (bannedPlayers.contains(e.getPlayer().getUniqueId())) {
+            Bukkit.getScheduler().runTask(plugin, () -> enforceSpectatorBan(e.getPlayer()));
+        }
     }
 
     @EventHandler
@@ -137,11 +161,16 @@ public final class ChampionBladeAbilityListener implements Listener {
     @EventHandler
     public void onHit(EntityDamageByEntityEvent e) {
         if(!(e.getDamager() instanceof Player attacker) || !(e.getEntity() instanceof Player target)) return;
+        if (bannedPlayers.contains(attacker.getUniqueId()) || bannedPlayers.contains(target.getUniqueId())) {
+            e.setCancelled(true);
+            return;
+        }
         if(!"champions_blade".equals(id(attacker.getInventory().getItemInMainHand()))) return;
         if(isSameCause(attacker.getUniqueId(),target.getUniqueId())) { e.setCancelled(true); return; }
         if(pendingInvites.remove(attacker.getUniqueId())) openInvite(target,attacker.getUniqueId());
     }
     private void openInvite(Player target, UUID owner) {
+        if (bannedPlayers.contains(target.getUniqueId())) return;
         inviteTargets.put(target.getUniqueId(),owner);
         Inventory inv=Bukkit.createInventory(null,27,ChatColor.GOLD+"Join the Cause?");
         inv.setItem(11,button(Material.LIME_WOOL,ChatColor.GREEN+"YES","join"));
@@ -163,7 +192,7 @@ public final class ChampionBladeAbilityListener implements Listener {
             ItemStack item=new ItemStack(Material.PLAYER_HEAD);
             ItemMeta meta=item.getItemMeta();
             meta.setDisplayName(ChatColor.YELLOW+Objects.toString(op.getName(),"Unknown"));
-            meta.setLore(List.of(ChatColor.GRAY+"Tier: "+tiers.getOrDefault(member,"LT5"),ChatColor.GREEN+"Click: change tier",ChatColor.GOLD+"Right-click: kick",ChatColor.RED+"Shift-click: ban"));
+            meta.setLore(List.of(ChatColor.GRAY+"Tier: "+tiers.getOrDefault(member,"LT5"),ChatColor.GREEN+"Click: change tier",ChatColor.GOLD+"Right-click: kick",ChatColor.RED+"Shift-click: spectator ban"));
             meta.getPersistentDataContainer().set(new NamespacedKey(plugin,"champion_member"),PersistentDataType.STRING,member.toString());
             item.setItemMeta(meta); if(slot<45) inv.setItem(slot++,item);
         }
@@ -185,7 +214,7 @@ public final class ChampionBladeAbilityListener implements Listener {
         if(title.equals(ChatColor.GOLD+"Join the Cause?")) {
             UUID owner=inviteTargets.remove(p.getUniqueId());
             p.closeInventory();
-            if("join".equals(action) && owner!=null) {
+            if("join".equals(action) && owner!=null && !bannedPlayers.contains(p.getUniqueId())) {
                 owners.put(p.getUniqueId(),owner); tiers.put(p.getUniqueId(),"LT5"); saveData();
                 p.sendMessage(ChatColor.YELLOW+"You have joined the Cause.");
                 Player o=Bukkit.getPlayer(owner); if(o!=null)o.sendMessage(ChatColor.GREEN+p.getName()+" joined your Cause as LT5.");
@@ -198,13 +227,21 @@ public final class ChampionBladeAbilityListener implements Listener {
             UUID member=UUID.fromString(raw);
             OfflinePlayer target=Bukkit.getOfflinePlayer(member);
             if(e.isShiftClick() || e.isRightClick()) {
-                owners.remove(member); tiers.remove(member); saveData();
+                boolean ban = e.isShiftClick();
+                owners.remove(member); tiers.remove(member);
+                if (ban) bannedPlayers.add(member);
+                saveData();
                 if(target.isOnline()) {
                     Player online=(Player)target;
-                    clearYellowNametag(online);
-                    online.sendMessage(e.isShiftClick() ? ChatColor.GOLD+"You have received justice." : ChatColor.RED+"You have been kicked from the Cause.");
+                    if (ban) {
+                        online.closeInventory();
+                        enforceSpectatorBan(online);
+                    } else {
+                        clearYellowNametag(online);
+                        online.sendMessage(ChatColor.RED+"You have been kicked from the Cause.");
+                    }
                 }
-                p.sendMessage(ChatColor.YELLOW+Objects.toString(target.getName(),"Player")+(e.isShiftClick() ? " has been banned from the Cause." : " has been kicked from the Cause."));
+                p.sendMessage(ChatColor.YELLOW+Objects.toString(target.getName(),"Player")+(ban ? " has been placed in spectator mode." : " has been kicked from the Cause."));
                 openManagement(p);
             } else openTierMenu(p,member);
             return;
