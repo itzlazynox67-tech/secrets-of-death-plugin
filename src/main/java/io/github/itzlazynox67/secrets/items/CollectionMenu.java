@@ -38,6 +38,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         menu.setItem(13, entry(plugin.getArtifactRegistry().createItem("silence"), "Silence", "A separate Warden-themed artifact."));
         menu.setItem(17, entry(plugin.getArtifactRegistry().createItem("cycletation"), "Cycletation", "A two-page weather, time, and armor artifact book."));
         menu.setItem(22, entry(plugin.getArtifactRegistry().createItem("shadow_harvester"), "Shadow Harvester", "A standalone mace artifact with two shadow abilities."));
+        menu.setItem(26, entry(plugin.getArtifactRegistry().createItem("midas"), "Midas", "A standalone golden artifact with three abilities."));
         player.openInventory(menu);
     }
 
@@ -45,11 +46,12 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         Inventory menu = Bukkit.createInventory(null, 54, ChatColor.DARK_RED + "Items");
         String[] ids = {"tnt", "flint_and_steel", "fireworks", "explosion_gift", "eclipse", "deaths_embrace",
                 "death_helmet", "death_chestplate", "death_leggings", "death_boots", "tnt_minecart", "rails",
-                "blastforge", "hellfire", "deadlock", "phoenix_wings", "shadow_harvester"};
+                "blastforge", "hellfire", "deadlock", "phoenix_wings", "shadow_harvester", "midas", "midas_blessing"};
         Material[] materials = {Material.TNT, Material.FLINT_AND_STEEL, Material.FIREWORK_ROCKET, Material.TOTEM_OF_UNDYING,
                 Material.NETHERITE_SPEAR, Material.MACE, Material.NETHERITE_HELMET, Material.NETHERITE_CHESTPLATE,
                 Material.NETHERITE_LEGGINGS, Material.NETHERITE_BOOTS, Material.TNT_MINECART, Material.RAIL,
-                Material.NETHERITE_PICKAXE, Material.FIRE_CHARGE, Material.NETHERITE_AXE, Material.ELYTRA, Material.MACE};
+                Material.NETHERITE_PICKAXE, Material.FIRE_CHARGE, Material.NETHERITE_AXE, Material.ELYTRA, Material.MACE,
+                Material.GOLDEN_SWORD, Material.TOTEM_OF_UNDYING};
         for (int i = 0; i < ids.length; i++) {
             ItemStack stack = plugin.getArtifactRegistry().createItem(ids[i]);
             if (stack == null) stack = new ItemStack(materials[i]);
@@ -93,7 +95,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         }
         if (id == null) {
             int slot = event.getSlot();
-            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : slot == 22 ? "shadow_harvester" : null;
+            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : slot == 22 ? "shadow_harvester" : slot == 26 ? "midas" : null;
         }
         if (id == null) return;
         ItemStack reward;
@@ -107,6 +109,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         else reward = plugin.getArtifactRegistry().createItem(id);
         if (reward != null) {
             player.getInventory().addItem(reward).values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            if (id.equals("midas_blessing")) plugin.getMidasBlessingManager().grant(player, player);
             player.sendMessage(ChatColor.GREEN + "Received " + id.replace('_', ' ') + ".");
         }
     }
