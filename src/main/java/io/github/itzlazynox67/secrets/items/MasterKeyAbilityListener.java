@@ -13,6 +13,7 @@ import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.*;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -37,6 +38,7 @@ public final class MasterKeyAbilityListener implements Listener {
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, Long> returnAt = new HashMap<>();
     private World prison;
+    private final Set<UUID> waitingForItemSearch = new HashSet<>();
 
     public MasterKeyAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
@@ -75,16 +77,20 @@ public final class MasterKeyAbilityListener implements Listener {
             } else {
                 exile(player);
             }
-        } else openItemMenu(player, 0);
+        } else openItemMenu(player, 0, "");
     }
 
-    private void openItemMenu(Player player, int page) {
+    private void openItemMenu(Player player, int page) { openItemMenu(player, page, ""); }
+
+    private void openItemMenu(Player player, int page, String search) {
+        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
         List<Material> choices = Arrays.stream(Material.values())
                 .filter(m -> m.isItem() && m != Material.AIR && !m.isLegacy() && m != Material.KNOWLEDGE_BOOK)
+                .filter(m -> query.isEmpty() || pretty(m).toLowerCase(Locale.ROOT).contains(query) || m.name().toLowerCase(Locale.ROOT).contains(query))
                 .sorted(Comparator.comparing(Material::name)).toList();
         int pages = (choices.size() + 44) / 45;
         page = Math.max(0, Math.min(page, pages - 1));
-        Inventory menu = Bukkit.createInventory(null, 54, GUI_TITLE + " (" + (page + 1) + "/" + pages + ")");
+        Inventory menu = Bukkit.createInventory(null, 54, GUI_TITLE + (query.isEmpty() ? "" : " [" + search + "]") + " (" + (page + 1) + "/" + pages + ")");
         int start = page * 45;
         for (int i = start; i < Math.min(start + 45, choices.size()); i++) {
             Material material = choices.get(i);
@@ -96,6 +102,7 @@ public final class MasterKeyAbilityListener implements Listener {
             menu.setItem(i - start, icon);
         }
         if (page > 0) menu.setItem(45, named(Material.ARROW, ChatColor.YELLOW + "Previous page"));
+        menu.setItem(47, named(Material.COMPASS, ChatColor.AQUA + "Search items"));
         menu.setItem(48, named(Material.LIME_DYE, ChatColor.GREEN + "Unlock an item"));
         menu.setItem(49, named(Material.BARRIER, ChatColor.RED + "Close"));
         if (page + 1 < pages) menu.setItem(53, named(Material.ARROW, ChatColor.YELLOW + "Next page"));
@@ -149,6 +156,12 @@ public final class MasterKeyAbilityListener implements Listener {
                 || event.getClickedInventory() != event.getView().getTopInventory()) return;
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
+        if (!unlockMenu && event.getSlot() == 47) {
+            waitingForItemSearch.add(player.getUniqueId());
+            player.closeInventory();
+            player.sendMessage(ChatColor.AQUA + "Type an item name in chat to search (or type cancel).");
+            return;
+        }
         if (!unlockMenu && event.getSlot() == 48) {
             openUnlockMenu(player, 0);
             return;
@@ -157,9 +170,9 @@ public final class MasterKeyAbilityListener implements Listener {
             String pageText = title.substring(title.lastIndexOf('(') + 1, title.lastIndexOf('/'));
             int page = Integer.parseInt(pageText.trim()) - 1;
             if (event.getSlot() == 45 && page > 0) {
-                if (unlockMenu) openUnlockMenu(player, page - 1); else openItemMenu(player, page - 1);
+                if (unlockMenu) openUnlockMenu(player, page - 1); else openItemMenu(player, page - 1, searchFromTitle(title));
             } else if (event.getSlot() == 53) {
-                if (unlockMenu) openUnlockMenu(player, page + 1); else openItemMenu(player, page + 1);
+                if (unlockMenu) openUnlockMenu(player, page + 1); else openItemMenu(player, page + 1, searchFromTitle(title));
             } else if (event.getSlot() == 49) player.closeInventory();
             return;
         }
@@ -208,6 +221,35 @@ public final class MasterKeyAbilityListener implements Listener {
                 }
             }
         }
+    }
+
+    private String searchFromTitle(String title) {
+        int open = title.indexOf(" [");
+        int close = title.lastIndexOf("] (");
+        return open >= 0 && close > open ? title.substring(open + 2, close) : "";
+    }
+
+    @EventHandler
+    public void onItemSearchChat(AsyncPlayerChatEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        if (!waitingForItemSearch.remove(id)) return;
+        event.setCancelled(true);
+        String query = event.getMessage().trim();
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (query.equalsIgnoreCase("cancel")) {
+                player.sendMessage(ChatColor.GRAY + "Item search cancelled.");
+                return;
+            }
+            if (query.isBlank()) {
+                player.sendMessage(ChatColor.YELLOW + "Enter an item name to search.");
+                return;
+            }
+            openItemMenu(player, 0, query);
+            if (player.getOpenInventory().getTopInventory().isEmpty()) {
+                player.sendMessage(ChatColor.RED + "No items matched '" + query + "'. Try another name.");
+            }
+        });
     }
 
     @EventHandler
