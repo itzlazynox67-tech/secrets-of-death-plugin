@@ -40,6 +40,7 @@ public final class ArtifactRegistry {
         register("shadow_harvester", "Shadow Harvester", "modeling:shadow_harvester", "A standalone shadow artifact with Shadow Teleport and Shadow Throw.");
         register("midas", "Midas", "modeling:midas", "A golden artifact with Golden Touch, Golden Reversal, Golden Eternity, and Golden Cataclysm.");
         register("speed_demon", "Speed Demon's Soul", "modeling:speed_demon", "A standalone speed artifact with Speed Mode, Speed Dash, Speed Beam, and REGEARA.");
+        register("master_key", "Master Key", "modeling:master_key", "Locks the use of a selected item for one hour or exiles nearby players to its endless prison dimension.");
         register("midas_blessing", "Midas Blessing", "minecraft:totem_of_undying", "A protection token that grants immunity to Midas abilities only.");
         register("cycletation", "Cycletation", "modeling:cycle", "A two-page weather and time artifact book containing God's Will and the Forged Armor rewards.");
         register("godswill", "God's Will", "minecraft:trident", "A special trident reward from the Cycletation artifact; strikes nearby players with lightning while raining.");
@@ -79,6 +80,7 @@ public final class ArtifactRegistry {
             case "shadow_harvester" -> Material.MACE;
             case "midas" -> Material.GOLDEN_SWORD;
             case "speed_demon" -> Material.WARPED_FUNGUS_ON_A_STICK;
+            case "master_key" -> Material.TRIPWIRE_HOOK;
             case "midas_blessing" -> Material.TOTEM_OF_UNDYING;
             case "godswill" -> Material.TRIDENT;
             case "cycletation" -> Material.WRITTEN_BOOK;
@@ -103,6 +105,7 @@ public final class ArtifactRegistry {
             case "shadow_harvester" -> "&5&lShadow Harvester";
             case "midas" -> "&6&lMidas";
             case "speed_demon" -> "&b&lSpeed Demon's Soul";
+            case "master_key" -> "&5&lMaster Key";
             case "midas_blessing" -> "&e&lMidas Blessing";
             case "godswill" -> "&b&lGod's Will";
             case "cycletation" -> "&b&lCycletation";
@@ -156,6 +159,16 @@ public final class ArtifactRegistry {
                     color("&8Golden food breaks Golden Eternity."),
                     color("&8ID: midas")
             ));
+        } else if (definition.id().equals("master_key")) {
+            meta.setUnbreakable(true);
+            meta.setLore(java.util.List.of(
+                    color("&8Standalone artifact"),
+                    color("&5&lAbilities"),
+                    color("&dItem Lock &7- Right-click to choose any item and lock its use for 1 hour."),
+                    color("&dDimensional Exile &7- Sneak + right-click to send you and players within 100 blocks to the prison for 10 minutes."),
+                    color("&8Item Lock cooldown: 3 days | Exile cooldown: 30 minutes"),
+                    color("&8ID: master_key")
+            ));
         } else if (definition.id().equals("midas_blessing")) {
             meta.setLore(java.util.List.of(
                     color("&8Midas protection token"),
@@ -175,7 +188,7 @@ public final class ArtifactRegistry {
 
         // Only the book and Death's Embrace use custom resource-pack models.
         // All other artifacts keep their normal vanilla Minecraft item textures.
-        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester") || definition.id().equals("midas") || definition.id().equals("speed_demon")) {
+        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester") || definition.id().equals("midas") || definition.id().equals("speed_demon") || definition.id().equals("master_key")) {
             NamespacedKey modelKey = NamespacedKey.fromString(definition.modelId());
             if (modelKey != null) {
                 meta.setItemModel(modelKey);
