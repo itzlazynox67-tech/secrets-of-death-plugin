@@ -128,6 +128,7 @@ public final class ArtifactRegistry {
                 ? "&8Standalone artifact"
                 : definition.id().equals("godswill") ? "&8Cycletation reward" : "&7Secrets of Death and Destruction";
         if (definition.id().equals("midas")) {
+            meta.setUnbreakable(true);
             meta.setLore(java.util.List.of(
                     color("&8Standalone artifact"),
                     color("&6&lAbilities"),
