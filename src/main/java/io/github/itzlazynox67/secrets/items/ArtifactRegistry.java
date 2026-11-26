@@ -106,6 +106,12 @@ public final class ArtifactRegistry {
                             2.0,
                             org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
                             org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
+            meta.addAttributeModifier(org.bukkit.attribute.Attribute.ATTACK_SPEED,
+                    new org.bukkit.attribute.AttributeModifier(
+                            new NamespacedKey(plugin, "shadow_harvester_attack_speed"),
+                            1.0,
+                            org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                            org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
         }
         if (definition.id().equals("deaths_embrace")) {
             meta.displayName(deathEmbraceGradient());
