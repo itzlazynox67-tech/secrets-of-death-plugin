@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -91,17 +92,19 @@ public final class MidasAbilityListener implements Listener {
     public void onUse(PlayerInteractEvent event) {
         if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND || !isMidas(event.getItem())) return;
         Action action = event.getAction();
-        Player player = event.getPlayer();
-        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
-            event.setCancelled(true);
-            if (player.isSneaking()) plugin.getMidasBlessingRevokeMenu().openHome(player);
-            else activateCataclysm(player);
-            return;
-        }
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
         event.setCancelled(true);
+        Player player = event.getPlayer();
         if (player.isSneaking()) activateEternity(player);
         else activateReversal(player);
+    }
+
+    @EventHandler
+    public void onMidasSwing(PlayerAnimationEvent event) {
+        Player player = event.getPlayer();
+        if (!isMidas(player.getInventory().getItemInMainHand())) return;
+        if (player.isSneaking()) plugin.getMidasBlessingRevokeMenu().openHome(player);
+        else activateCataclysm(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
