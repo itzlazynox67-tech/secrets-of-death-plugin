@@ -183,6 +183,17 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
             return;
         }
         String id = args[1].toLowerCase(Locale.ROOT);
+        boolean secretsArmor = id.equals("death_helmet") || id.equals("death_chestplate")
+                || id.equals("death_leggings") || id.equals("death_boots");
+        long now = System.currentTimeMillis();
+        if (secretsArmor) {
+            long readyAt = secretsArmorCooldowns.getOrDefault(player.getUniqueId(), 0L);
+            if (now < readyAt) {
+                long minutes = Math.max(1, (readyAt - now + 59999L) / 60000L);
+                player.sendMessage(msg("&cSecrets armor cooldown: " + minutes + " minute(s) remaining."));
+                return;
+            }
+        }
         if (id.equals("hellfire")) {
             org.bukkit.entity.Fireball fireball = player.launchProjectile(org.bukkit.entity.Fireball.class);
             org.bukkit.util.Vector direction = player.getEyeLocation().getDirection().normalize();
@@ -239,9 +250,12 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
             }
         }
         giveOrDrop(player, item);
+        if (secretsArmor) secretsArmorCooldowns.put(player.getUniqueId(), now + 20 * 60 * 1000L);
         playClaimEffects(player);
         player.sendMessage(msg("&aClaimed &f" + id.replace('_', ' ') + "&a."));
     }
+
+    private final java.util.Map<java.util.UUID, Long> secretsArmorCooldowns = new java.util.HashMap<>();
 
     private final java.util.Map<java.util.UUID, Long> cycletationCooldowns = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID, Long> forgedArmorCooldowns = new java.util.HashMap<>();
