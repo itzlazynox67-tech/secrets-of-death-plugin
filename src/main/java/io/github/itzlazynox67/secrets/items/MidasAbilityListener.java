@@ -262,47 +262,55 @@ public final class MidasAbilityListener implements Listener {
         long expiresAt = System.currentTimeMillis() + 60_000L;
         int radius = (int) Math.ceil(CATACLYSM_RADIUS);
         int centerX = center.getBlockX();
-        // Center the sphere on the block beneath the player's feet so the
-        // visible ground is included, not just the space around their body.
-        int centerY = center.getBlockY() - 1;
+        int centerY = center.getBlockY();
         int centerZ = center.getBlockZ();
 
+        // Cataclysm is a ground transformation: turn the TOP ground block in
+        // every column of a circular area into gold, rather than filling a sphere.
         new BukkitRunnable() {
             int cursor = 0;
             int changed = 0;
             final int diameter = radius * 2 + 1;
-            final int total = diameter * diameter * diameter;
+            final int total = diameter * diameter;
 
             @Override
             public void run() {
                 int examined = 0;
-                while (cursor < total && examined < 2500) {
+                while (cursor < total && examined < 500) {
                     int index = cursor++;
                     examined++;
-                    int dx = index / (diameter * diameter) - radius;
-                    int dy = (index / diameter) % diameter - radius;
+                    int dx = index / diameter - radius;
                     int dz = index % diameter - radius;
-                    if (dx * dx + dy * dy + dz * dz > radius * radius) continue;
+                    if (dx * dx + dz * dz > radius * radius) continue;
 
                     int x = centerX + dx;
-                    int y = centerY + dy;
                     int z = centerZ + dz;
-                    if (y < world.getMinHeight() || y >= world.getMaxHeight()) continue;
                     if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
 
-                    org.bukkit.block.Block block = world.getBlockAt(x, y, z);
-                    if (block.getType().isAir() || block.getState() instanceof org.bukkit.block.TileState) continue;
+                    // Find the surface block at or below the player's feet.
+                    // This follows hills and dips, so the visible terrain is gilded.
+                    org.bukkit.block.Block ground = null;
+                    for (int y = Math.min(centerY, world.getMaxHeight() - 1);
+                         y >= world.getMinHeight(); y--) {
+                        org.bukkit.block.Block candidate = world.getBlockAt(x, y, z);
+                        Material type = candidate.getType();
+                        if (type.isAir() || type == Material.WATER || type == Material.LAVA) continue;
+                        if (candidate.getState() instanceof org.bukkit.block.TileState) continue;
+                        ground = candidate;
+                        break;
+                    }
+                    if (ground == null) continue;
 
-                    BlockPosition position = BlockPosition.of(block);
+                    BlockPosition position = BlockPosition.of(ground);
                     TemporaryGold existing = temporaryGoldBlocks.get(position);
                     if (existing == null) {
-                        temporaryGoldBlocks.put(position, new TemporaryGold(block.getState(), expiresAt));
+                        temporaryGoldBlocks.put(position, new TemporaryGold(ground.getState(), expiresAt));
                     } else {
                         existing.expiresAt = expiresAt;
                     }
 
-                    if (block.getType() != Material.GOLD_BLOCK) {
-                        block.setType(Material.GOLD_BLOCK, false);
+                    if (ground.getType() != Material.GOLD_BLOCK) {
+                        ground.setType(Material.GOLD_BLOCK, false);
                         changed++;
                     }
                 }
@@ -312,9 +320,7 @@ public final class MidasAbilityListener implements Listener {
                     world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.25f);
                     world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0),
                             180, CATACLYSM_RADIUS / 2, 1.2, CATACLYSM_RADIUS / 2, 0.06);
-                    // The surrounding Cataclysm activation already reports its hit count;
-                    // this confirmation makes terrain conversion visible in the action log.
-                    plugin.getLogger().fine("Golden Cataclysm converted " + changed + " blocks to temporary gold.");
+                    plugin.getLogger().fine("Golden Cataclysm converted " + changed + " ground blocks to temporary gold.");
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
