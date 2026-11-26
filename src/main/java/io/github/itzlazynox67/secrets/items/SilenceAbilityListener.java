@@ -311,9 +311,10 @@ public final class SilenceAbilityListener implements Listener {
                     if (block.getType().isAir() || block.getState() instanceof org.bukkit.block.TileState) continue;
                     BlockState original = block.getState();
                     snapshots.add(new BlockSnapshot(world, x, y, z, original));
-                    // Keep the domain mostly as ordinary sculk, with only a little sculk vein.
-                    Material domainBlock = ThreadLocalRandom.current().nextInt(10) == 0
-                            ? Material.SCULK_VEIN : Material.SCULK;
+                    // Mostly ordinary sculk, with occasional shriekers and sensors.
+                    int roll = ThreadLocalRandom.current().nextInt(100);
+                    Material domainBlock = roll < 80 ? Material.SCULK
+                            : roll < 90 ? Material.SCULK_SHRIEKER : Material.SCULK_SENSOR;
                     block.setType(domainBlock, false);
                     processed++;
                 }
@@ -328,7 +329,8 @@ public final class SilenceAbilityListener implements Listener {
                     if (!w.isChunkLoaded(snapshot.x() >> 4, snapshot.z() >> 4)) continue;
                     org.bukkit.block.Block current = w.getBlockAt(snapshot.x(), snapshot.y(), snapshot.z());
                     Material currentType = current.getType();
-                    if (currentType == Material.SCULK || currentType == Material.SCULK_VEIN) {
+                    if (currentType == Material.SCULK || currentType == Material.SCULK_SHRIEKER
+                            || currentType == Material.SCULK_SENSOR) {
                         snapshot.state().update(true, false);
                     }
                 }
