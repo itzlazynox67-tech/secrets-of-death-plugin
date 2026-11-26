@@ -32,7 +32,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class MidasAbilityListener implements Listener {
-    private static final long REVERSAL_DURATION = 5_000L;
+    private static final long REVERSAL_DURATION = 15_000L;
     private static final long REVERSAL_COOLDOWN = 30_000L;
     private static final long ETERNITY_DURATION = 60_000L;
     private static final long ETERNITY_COOLDOWN = 90_000L;
@@ -204,7 +204,7 @@ public final class MidasAbilityListener implements Listener {
         reversalExpiry.put(player.getUniqueId(), now + REVERSAL_DURATION);
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1.1f, 1.5f);
         player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 65, 0.8, 1.0, 0.8, 0.08);
-        player.sendMessage(ChatColor.GOLD + "Golden Reversal activated! Melee attacks and projectiles are reflected for 5 seconds.");
+        player.sendMessage(ChatColor.GOLD + "Golden Reversal activated! Melee attacks and projectiles are reflected for 15 seconds.");
     }
 
     private void activateEternity(Player player) {
