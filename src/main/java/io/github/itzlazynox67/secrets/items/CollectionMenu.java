@@ -44,6 +44,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         menu.setItem(26, entry(plugin.getArtifactRegistry().createItem("midas"), "Midas", "A standalone golden artifact with Golden Touch, Golden Reversal, Golden Eternity, and Golden Cataclysm."));
         menu.setItem(4, entry(plugin.getArtifactRegistry().createItem("master_key"), "Master Key", "Item Lock and Dimensional Exile."));
         menu.setItem(8, entry(plugin.getArtifactRegistry().createItem("champions_blade"), "Champion's Blade", "Recruit the Cause, manage hierarchy, and deliver justice."));
+        menu.setItem(2, entry(plugin.getArtifactRegistry().createItem("tarnish_sword"), "Tarnish Sword", "Trial mobs, combo lightning, and storm-powered abilities."));
         player.openInventory(menu);
     }
 
@@ -103,7 +104,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         }
         if (id == null) {
             int slot = event.getSlot();
-            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : slot == 22 ? "shadow_harvester" : slot == 24 ? "speed_demon" : slot == 26 ? "midas" : slot == 4 ? "master_key" : slot == 8 ? "champions_blade" : null;
+            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : slot == 22 ? "shadow_harvester" : slot == 24 ? "speed_demon" : slot == 26 ? "midas" : slot == 4 ? "master_key" : slot == 8 ? "champions_blade" : slot == 2 ? "tarnish_sword" : null;
         }
         if (id == null) return;
         ItemStack reward;
