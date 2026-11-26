@@ -397,12 +397,14 @@ public final class SilenceAbilityListener implements Listener {
 
     private void activateRampage(Player player) {
         if (rampageEnds.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return;
+        // Rampage lasts 5 minutes and has a 10-minute cooldown from activation.
+        if (!ready(player, "Rampage", 600_000L)) return;
         applyBlueGlow(player);
         player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 320, 0, true, false, true));
         rampageEnds.put(player.getUniqueId(), System.currentTimeMillis() + 300_000L);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_ROAR, 1.5f, 0.7f);
         player.getWorld().spawnParticle(Particle.SCULK_CHARGE_POP, player.getLocation(), 180, 1, 1, 1, 0.1);
-        player.sendMessage(ChatColor.DARK_AQUA + "Silence: RAMPAGE activated for 5 minutes!");
+        player.sendMessage(ChatColor.DARK_AQUA + "Silence: RAMPAGE activated for 5 minutes. Cooldown: 10 minutes.");
     }
 
     private void rampageDestroy(Player player) {
