@@ -30,6 +30,13 @@ public final class MidasBlessingManager implements Listener {
     public void grant(Player giver, Player recipient) {
         String owner = giver == null ? "CONSOLE" : giver.getUniqueId().toString();
         plugin.getConfig().set("midas.blessing.grants." + recipient.getUniqueId(), owner);
+        if (!hasToken(recipient)) {
+            ItemStack token = plugin.getArtifactRegistry().createItem("midas_blessing");
+            if (token != null) {
+                var leftovers = recipient.getInventory().addItem(token);
+                leftovers.values().forEach(leftover -> recipient.getWorld().dropItemNaturally(recipient.getLocation(), leftover));
+            }
+        }
         stampTokens(recipient, owner);
         plugin.saveConfig();
         recipient.sendMessage(ChatColor.GOLD + "Midas Blessing has been granted. You are immune to Midas abilities while carrying its token.");
