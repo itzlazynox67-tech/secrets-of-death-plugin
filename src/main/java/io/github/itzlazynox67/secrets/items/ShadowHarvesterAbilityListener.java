@@ -129,7 +129,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         projectile.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(THROW_SPEED));
 
         UUID projectileId = projectile.getUniqueId();
-        thrownWeapons.put(projectileId, new ThrownWeapon(player.getUniqueId(), weapon, projectile));
+        thrownWeapons.put(projectileId, new ThrownWeapon(player.getUniqueId(), weapon, projectile,
+                player.getInventory().getHeldItemSlot()));
         Bukkit.getScheduler().runTaskLater(plugin, () -> finishThrow(projectileId), 100L);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 0.65f);
         player.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, player.getEyeLocation(), 12,
@@ -205,7 +206,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
 
         int originalSlot = state.originalSlot;
         if (originalSlot >= 0 && originalSlot < owner.getInventory().getSize()
-                && owner.getInventory().getItem(originalSlot) == null) {
+                && (owner.getInventory().getItem(originalSlot) == null
+                || owner.getInventory().getItem(originalSlot).getType().isAir())) {
             owner.getInventory().setItem(originalSlot, state.weapon);
         } else {
             Map<Integer, ItemStack> overflow = owner.getInventory().addItem(state.weapon);
@@ -228,11 +230,11 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         private final Snowball projectile;
         private final int originalSlot;
 
-        private ThrownWeapon(UUID ownerId, ItemStack weapon, Snowball projectile) {
+        private ThrownWeapon(UUID ownerId, ItemStack weapon, Snowball projectile, int originalSlot) {
             this.ownerId = ownerId;
             this.weapon = weapon;
             this.projectile = projectile;
-            this.originalSlot = 0;
+            this.originalSlot = originalSlot;
         }
     }
 }
