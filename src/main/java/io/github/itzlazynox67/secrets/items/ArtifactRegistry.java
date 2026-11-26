@@ -38,7 +38,7 @@ public final class ArtifactRegistry {
         register("phoenix_wings", "Phoenix Wings", "modeling:phoenix_wings", "A named collectible from the Secrets collection.");
         register("silence", "Silence", "modeling:silence", "A Warden-themed artifact with sonic, debuff, summoning, and Rampage abilities.");
         register("shadow_harvester", "Shadow Harvester", "modeling:shadow_harvester", "A standalone shadow artifact with Shadow Teleport and Shadow Throw.");
-        register("midas", "Midas", "minecraft:golden_sword", "A golden artifact with Golden Touch, Golden Reversal, and Golden Eternity.");
+        register("midas", "Midas", "modeling:midas", "A golden artifact with Golden Touch, Golden Reversal, and Golden Eternity.");
         register("midas_blessing", "Midas Blessing", "minecraft:totem_of_undying", "A protection token that grants immunity to Midas abilities only.");
         register("cycletation", "Cycletation", "modeling:cycle", "A two-page weather and time artifact book containing God's Will and the Forged Armor rewards.");
         register("godswill", "God's Will", "minecraft:trident", "A special trident reward from the Cycletation artifact; strikes nearby players with lightning while raining.");
@@ -156,7 +156,7 @@ public final class ArtifactRegistry {
 
         // Only the book and Death's Embrace use custom resource-pack models.
         // All other artifacts keep their normal vanilla Minecraft item textures.
-        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester")) {
+        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester") || definition.id().equals("midas")) {
             NamespacedKey modelKey = NamespacedKey.fromString(definition.modelId());
             if (modelKey != null) {
                 meta.setItemModel(modelKey);
