@@ -22,6 +22,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.event.player.PlayerVelocityEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -32,6 +33,8 @@ public final class ArtifactAbilityListener implements Listener {
     private final NamespacedKey deathsEmbraceModeKey;
     private final Map<UUID, Long> pulseCooldowns = new HashMap<>();
     private final Map<UUID, Long> deadlockCooldowns = new HashMap<>();
+    private final Map<UUID, Long> deadlockStunUntil = new HashMap<>();
+    private final Set<UUID> deathEmbraceSplashProcessing = new HashSet<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
     private final Map<UUID, Long> phoenixDashCooldowns = new HashMap<>();
     private final Map<UUID, Long> lastForwardPress = new HashMap<>();
@@ -187,6 +190,10 @@ public final class ArtifactAbilityListener implements Listener {
                     if (target instanceof Player protectedPlayer
                             && plugin.getProtectionManager().isProtected(protectedPlayer)) continue;
                     target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
+                    if (target instanceof Player stunnedPlayer) {
+                        deadlockStunUntil.put(stunnedPlayer.getUniqueId(), System.currentTimeMillis() + 6000L);
+                        stunnedPlayer.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+                    }
                     target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 30,
                             0.4, 0.8, 0.4, new Particle.DustOptions(Color.RED, 1.8f));
                     if (target instanceof Player victim) victim.sendMessage(ChatColor.DARK_RED + "DeadLock has locked you!");
@@ -196,19 +203,43 @@ public final class ArtifactAbilityListener implements Listener {
                 player.sendMessage(ChatColor.RED + "DeadLock locked " + locked + " target(s) in the 10-block area.");
             }
         }
-        if (!"deaths_embrace".equals(weaponId)) return;
+        if (!"deaths_embrace".equals(weaponId) || deathEmbraceSplashProcessing.contains(player.getUniqueId())) return;
+        if (!(event.getEntity() instanceof Player struckPlayer)) return;
+        double sharedDamage = event.getFinalDamage();
+        if (sharedDamage <= 0) return;
         long now = System.currentTimeMillis();
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
-        Location center = player.getLocation();
+        Location center = struckPlayer.getLocation();
         player.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
         player.getWorld().spawnParticle(Particle.DUST, center, 48, 3.0, 1.5, 3.0,
                 new Particle.DustOptions(Color.RED, 1.8f));
         player.getWorld().spawnParticle(Particle.SMOKE, center, 24, 3.0, 1.5, 3.0, 0.08);
-        for (Entity entity : player.getNearbyEntities(15, 15, 15)) {
-            if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
-            if (target.getLocation().distanceSquared(center) > 225) continue;
-            target.damage(10.0, player);
+        deathEmbraceSplashProcessing.add(player.getUniqueId());
+        try {
+            for (Entity entity : struckPlayer.getNearbyEntities(15, 15, 15)) {
+                if (!(entity instanceof Player nearbyPlayer) || nearbyPlayer.equals(player)
+                        || nearbyPlayer.equals(struckPlayer)) continue;
+                if (nearbyPlayer.getLocation().distanceSquared(center) > 225) continue;
+                if (plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
+                nearbyPlayer.damage(sharedDamage, player);
+            }
+        } finally {
+            deathEmbraceSplashProcessing.remove(player.getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void preventDeadLockVictimJump(PlayerMoveEvent event) {
+        Long stunUntil = deadlockStunUntil.get(event.getPlayer().getUniqueId());
+        if (stunUntil == null) return;
+        if (System.currentTimeMillis() >= stunUntil) {
+            deadlockStunUntil.remove(event.getPlayer().getUniqueId());
+            return;
+        }
+        if (event.getTo() != null && event.getTo().getY() > event.getFrom().getY() + 0.001) {
+            event.setTo(event.getFrom());
+            event.getPlayer().setVelocity(new org.bukkit.util.Vector(0, 0, 0));
         }
     }
 
