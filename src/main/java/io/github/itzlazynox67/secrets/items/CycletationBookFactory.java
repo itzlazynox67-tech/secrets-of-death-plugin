@@ -58,7 +58,7 @@ public final class CycletationBookFactory {
 
     private static Component action(String name, String hex, String ability) {
         return Component.text(name, TextColor.fromHexString(hex))
-                .clickEvent(ClickEvent.runCommand("/secrets claim cycle_" + ability))
+                .clickEvent(ClickEvent.runCommand("/artifacts claim cycle_" + ability))
                 .hoverEvent(Component.text("Click to use " + name));
     }
 }
