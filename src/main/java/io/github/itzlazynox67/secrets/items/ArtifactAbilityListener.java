@@ -27,6 +27,7 @@ import java.util.*;
 public final class ArtifactAbilityListener implements Listener {
     private final SecretsPlugin plugin;
     private final NamespacedKey artifactKey;
+    private final NamespacedKey deathsEmbraceModeKey;
     private final Map<UUID, Long> pulseCooldowns = new HashMap<>();
     private final Map<UUID, Long> deadlockCooldowns = new HashMap<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
@@ -38,6 +39,7 @@ public final class ArtifactAbilityListener implements Listener {
     public ArtifactAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
         this.artifactKey = new NamespacedKey(plugin, "collectible_id");
+        this.deathsEmbraceModeKey = new NamespacedKey(plugin, "deaths_embrace_mode");
         startPassiveTask();
     }
 
@@ -198,6 +200,29 @@ public final class ArtifactAbilityListener implements Listener {
         if (itemId == null) return;
 
         switch (itemId) {
+            case "deaths_embrace" -> {
+                if (!player.isSneaking()) return;
+                event.setCancelled(true);
+                ItemStack weapon = event.getItem();
+                ItemMeta meta = weapon.getItemMeta();
+                String currentMode = meta.getPersistentDataContainer().get(deathsEmbraceModeKey, PersistentDataType.STRING);
+                boolean densityMode = !"density".equalsIgnoreCase(currentMode);
+                meta.removeEnchant(org.bukkit.enchantments.Enchantment.BREACH);
+                meta.removeEnchant(org.bukkit.enchantments.Enchantment.DENSITY);
+                meta.removeEnchant(org.bukkit.enchantments.Enchantment.WIND_BURST);
+                if (densityMode) {
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.DENSITY, 5, true);
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.WIND_BURST, 2, true);
+                    meta.getPersistentDataContainer().set(deathsEmbraceModeKey, PersistentDataType.STRING, "density");
+                    player.sendMessage(ChatColor.AQUA + "Death's Embrace mode: " + ChatColor.WHITE + "Density V + Wind Burst II");
+                } else {
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.BREACH, 4, true);
+                    meta.getPersistentDataContainer().set(deathsEmbraceModeKey, PersistentDataType.STRING, "breach");
+                    player.sendMessage(ChatColor.DARK_RED + "Death's Embrace mode: " + ChatColor.WHITE + "Breach IV");
+                }
+                weapon.setItemMeta(meta);
+                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, densityMode ? 1.5f : 0.8f);
+            }
             case "blastforge" -> {
                 event.setCancelled(true);
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 80, 4, true, true, true));
