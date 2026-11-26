@@ -133,8 +133,11 @@ public final class ArtifactRegistry {
                     color("&6&lAbilities"),
                     color("&eGolden Touch &7- Hits build Golden Slowness up to Slowness X."),
                     color("&eGolden Reversal &7- Right-click to reflect melee attacks and projectiles for 5 seconds."),
-                    color("&eGolden Eternity &7- Shift + right-click to freeze nearby players for 4 seconds."),
-                    color("&8Reversal cooldown: 30s | Eternity cooldown: 90s"),
+                    color("&eGolden Eternity &7- Shift + right-click to freeze nearby players for 60 seconds."),
+                    color("&eGolden Cataclysm &7- Left-click to unleash a golden shockwave that damages and launches nearby players."),
+                    color("&6Golden Blessing Menu &7- Shift + left-click to grant or revoke Midas immunity."),
+                    color("&8Reversal: 30s | Eternity: 90s | Cataclysm: 120s"),
+                    color("&8Golden food breaks Golden Eternity."),
                     color("&8ID: midas")
             ));
         } else if (definition.id().equals("midas_blessing")) {
