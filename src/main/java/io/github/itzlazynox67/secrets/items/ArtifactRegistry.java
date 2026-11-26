@@ -115,6 +115,12 @@ public final class ArtifactRegistry {
             case "cycletation" -> "&b&lCycletation";
             default -> "&c&o" + definition.displayName();
         };
+        if (definition.id().equals("tarnish_sword")) {
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 5, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 3, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.MENDING, 1, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 1, true);
+        }
         if (definition.id().equals("champions_blade")) {
             meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 5, true);
             meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 3, true);
@@ -214,13 +220,14 @@ public final class ArtifactRegistry {
             meta.setLore(java.util.List.of(
                     color("&8Standalone artifact"),
                     color("&5&lTrial-Chamber Abilities"),
-                    color("&dTrial Spawn &7- Every 10 hits summons trial-chamber mobs to attack your target."),
-                    color("&dTen-Hit Stun &7- Every 10 hits, stun the player you hit for 10 seconds."),
-                    color("&dCombo Lightning &7- Every 5-hit combo strikes your target and nearby players within 10 blocks."),
-                    color("&dStorm Surge &7- In rain or water, lightning strikes on every hit."),
-                    color("&dFlood Punishment &7- Players touching water within 10 blocks of you are struck by lightning."),
-                    color("&dStormborn &7- Gain powerful buffs while in rain or water."),
-                    color("&8Passive: Infinite Strength II")
+                    color("&dTrial Spawn &7- Every 10 hits summons a full squad of trial-themed mobs to attack your target, never you or your teammates."),
+                    color("&dTrial Lock &7- Right-click to stun nearby enemy players for 30 seconds."),
+                    color("&dCombo Lightning &7- Every 5-hit combo unleashes powerful lightning damage."),
+                    color("&dStorm Surge &7- In rain, lightning strikes on every hit and grants storm buffs."),
+                    color("&dFlood Punishment &7- Players touching water within 20 blocks of you are struck by lightning."),
+                    color("&dStormborn &7- Gain powerful buffs in rain; water does not grant the holder the Strength V surge."),
+                    color("&8Passive: Strength II while Tarnish Sword is anywhere in your inventory."),
+                    color("&8Enchantments: Sharpness V, Unbreaking III, Mending, Knockback I")
             ));
         } else if (definition.id().equals("champions_blade")) {
             meta.setUnbreakable(true);
