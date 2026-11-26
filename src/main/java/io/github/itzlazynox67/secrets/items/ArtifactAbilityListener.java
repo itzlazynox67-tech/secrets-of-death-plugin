@@ -219,7 +219,11 @@ public final class ArtifactAbilityListener implements Listener {
                         || nearbyPlayer.equals(struckPlayer)) continue;
                 if (nearbyPlayer.getLocation().distanceSquared(center) > 225) continue;
                 if (plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
-                nearbyPlayer.damage(sharedDamage, player);
+                // Apply the struck player's final damage as direct health loss.
+                // Calling damage() here recalculates armor, Resistance, and other modifiers,
+                // so nearby players can take less damage than the original target.
+                double remainingHealth = Math.max(0.0, nearbyPlayer.getHealth() - sharedDamage);
+                nearbyPlayer.setHealth(remainingHealth);
             }
         } finally {
             deathEmbraceSplashProcessing.remove(player.getUniqueId());
