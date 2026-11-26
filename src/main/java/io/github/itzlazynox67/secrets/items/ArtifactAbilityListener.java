@@ -10,6 +10,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInputEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.ArmorMeta;
@@ -75,13 +77,14 @@ public final class ArtifactAbilityListener implements Listener {
                     if (!hasArtifact(player)) continue;
                     player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 240, 0, true, false, true));
                     player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 240, 0, true, false, true));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 240, 0, true, false, true));
                     player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 240, 1, true, false, true));
                     if (nearExplosiveThreat(player)) {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 240, 1, true, true, true));
                     }
                     if ("eclipse".equals(id(player.getInventory().getItemInMainHand()))
                             || "eclipse".equals(id(player.getInventory().getItemInOffHand()))) {
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 240, 0, true, false, false));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 100, 0, true, false, false));
                     }
                     if (hasItemAnywhere(player, "book")) {
                         Location ashCenter = player.getLocation().add(0, 0.15, 0);
@@ -91,6 +94,24 @@ public final class ArtifactAbilityListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 1L, 40L);
+    }
+
+
+    private void applyEclipseSaturation(Player player) {
+        if ("eclipse".equals(id(player.getInventory().getItemInMainHand()))
+                || "eclipse".equals(id(player.getInventory().getItemInOffHand()))) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 100, 0, true, false, false));
+        }
+    }
+
+    @EventHandler
+    public void onHeldSlotChange(PlayerItemHeldEvent event) {
+        Bukkit.getScheduler().runTask(plugin, () -> applyEclipseSaturation(event.getPlayer()));
+    }
+
+    @EventHandler
+    public void onHandSwap(PlayerSwapHandItemsEvent event) {
+        Bukkit.getScheduler().runTask(plugin, () -> applyEclipseSaturation(event.getPlayer()));
     }
 
     private boolean nearExplosiveThreat(Player player) {
