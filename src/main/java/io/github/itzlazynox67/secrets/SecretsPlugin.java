@@ -1,6 +1,6 @@
 package io.github.itzlazynox67.secrets;
 
-import io.github.itzlazynox67.secrets.commands.SecretsCommand;
+import io.github.itzlazynox67.secrets.commands.ArtifactCommand;
 import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import io.github.itzlazynox67.secrets.items.ArtifactAbilityListener;
 import io.github.itzlazynox67.secrets.items.SilenceAbilityListener;
@@ -48,17 +48,14 @@ public final class SecretsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(shadowHarvesterAbilityListener, this);
         CollectionMenu collectionMenu = new CollectionMenu(this);
         getServer().getPluginManager().registerEvents(collectionMenu, this);
-        if (getCommand("artifacts") != null) getCommand("artifacts").setExecutor(collectionMenu);
-        if (getCommand("items") != null) getCommand("items").setExecutor(collectionMenu);
-
-        PluginCommand command = getCommand("secrets");
+        PluginCommand command = getCommand("artifacts");
         if (command == null) {
-            getLogger().severe("Command 'secrets' is missing from plugin.yml. Disabling plugin.");
+            getLogger().severe("Command 'artifacts' is missing from plugin.yml. Disabling plugin.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
 
-        SecretsCommand handler = new SecretsCommand(this, artifactRegistry);
+        ArtifactCommand handler = new ArtifactCommand(this, artifactRegistry);
         command.setExecutor(handler);
         command.setTabCompleter(handler);
         getLogger().info("Artifacts enabled. Registered " + artifactRegistry.getDefinitions().size() + " collectible items.");
