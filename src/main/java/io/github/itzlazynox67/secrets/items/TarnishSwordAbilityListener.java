@@ -51,8 +51,9 @@ public final class TarnishSwordAbilityListener implements Listener {
                         wielder.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, at, 10, .5, .7, .5, .02);
                         wielder.getWorld().spawnParticle(Particle.GUST, at, 4, .35, .45, .35, .02);
                     }
-                    for (Entity entity : wielder.getNearbyEntities(10, 10, 10)) {
-                        if (!(entity instanceof Player nearby) || nearby.equals(wielder) || !isInWater(nearby)) continue;
+                    for (Entity entity : wielder.getNearbyEntities(20, 20, 20)) {
+                        if (!(entity instanceof Player nearby) || nearby.equals(wielder) || !isInWater(nearby)
+                                || sameTeam(wielder, nearby) || plugin.getProtectionManager().isProtected(nearby)) continue;
                         if (now < waterStrikeCooldowns.getOrDefault(nearby.getUniqueId(), 0L)) continue;
                         waterStrikeCooldowns.put(nearby.getUniqueId(), now + 1000L);
                         nearby.getWorld().strikeLightning(nearby.getLocation());
@@ -123,15 +124,15 @@ public final class TarnishSwordAbilityListener implements Listener {
         World world = target.getWorld();
         Location center = target.getLocation();
         if (target instanceof Player targetPlayer && !protectedFromSummons(wielder, targetPlayer)) {
-            targetPlayer.damage(20.0, wielder);
+            targetPlayer.damage(20.0);
         } else if (!(target instanceof Player)) {
-            target.damage(20.0, wielder);
+            target.damage(20.0);
         }
         strike(world, center);
         for (Entity entity : world.getNearbyEntities(center, 10, 10, 10)) {
             if (!(entity instanceof Player nearby) || nearby.equals(wielder) || nearby.equals(target)) continue;
             if (plugin.getProtectionManager().isProtected(nearby) || protectedFromSummons(wielder, nearby)) continue;
-            nearby.damage(20.0, wielder);
+            nearby.damage(20.0);
             strike(world, nearby.getLocation());
         }
         world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, center, 55, 2, 1.5, 2, .08);
