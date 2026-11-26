@@ -111,6 +111,28 @@ public final class ArtifactRegistry {
             case "cycletation" -> "&b&lCycletation";
             default -> "&c&o" + definition.displayName();
         };
+        if (definition.id().equals("master_key")) {
+            // Make the tripwire-hook-based artifact behave like a netherite sword.
+            meta.addAttributeModifier(org.bukkit.attribute.Attribute.ATTACK_DAMAGE,
+                    new org.bukkit.attribute.AttributeModifier(
+                            new NamespacedKey(plugin, "master_key_sword_damage"),
+                            7.0,
+                            org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                            org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
+            meta.addAttributeModifier(org.bukkit.attribute.Attribute.ATTACK_SPEED,
+                    new org.bukkit.attribute.AttributeModifier(
+                            new NamespacedKey(plugin, "master_key_sword_speed"),
+                            -2.4,
+                            org.bukkit.attribute.AttributeModifier.Operation.ADD_NUMBER,
+                            org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 5, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.LOOTING, 3, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.FIRE_ASPECT, 2, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.SWEEPING_EDGE, 3, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 3, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.MENDING, 1, true);
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 1, true);
+        }
         if (definition.id().equals("shadow_harvester")) {
             meta.addAttributeModifier(org.bukkit.attribute.Attribute.ATTACK_DAMAGE,
                     new org.bukkit.attribute.AttributeModifier(
