@@ -452,7 +452,7 @@ public final class SilenceAbilityListener implements Listener {
     }
 
     private void rampageDestroy(Player player) {
-        if (!ready(player, "Rampage Destruction", 180_000L)) return;
+        // This block-clearing move is intentionally reusable during Rampage.
         Location center = player.getLocation();
         Vector forward = center.getDirection().setY(0).normalize();
         if (forward.lengthSquared() == 0) forward = new Vector(0, 0, 1);
@@ -480,7 +480,7 @@ public final class SilenceAbilityListener implements Listener {
         for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
             if (entity instanceof LivingEntity target && !target.equals(player)) {
                 if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                piercingDamage(target, player, 10.0, 6.0);
+                piercingDamage(target, player, 2.0, 12.0);
             }
         }
         player.sendMessage(ChatColor.DARK_AQUA + "Silence: Rampage destruction! Cleared " + broken + " blocks.");
