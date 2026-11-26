@@ -104,18 +104,19 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         new BukkitRunnable() {
             private int bursts;
             @Override public void run() {
-                if (!player.isOnline() || !player.getWorld().equals(to.getWorld())
-                        || player.getLocation().distanceSquared(to) > 16.0 || bursts++ >= 3) {
+                if (!player.isOnline() || !player.getWorld().equals(to.getWorld()) || bursts++ >= 6) {
                     cancel();
                     return;
                 }
-                Location effect = to.clone().add(0, 1, 0);
-                player.spawnParticle(Particle.END_ROD, effect, 180, 0.5, 1.0, 1.0, 0.12);
-                player.spawnParticle(Particle.DUST_COLOR_TRANSITION, effect, 220,
-                        0.5, 1.0, 0.5, 0.02,
+                // Use the player's live post-teleport position, not the old destination
+                // snapshot, so the effect still renders after long-distance chunk changes.
+                Location effect = player.getLocation().add(0, 1, 0);
+                player.spawnParticle(Particle.END_ROD, effect, 220, 0.65, 1.0, 0.65, 0.14);
+                player.spawnParticle(Particle.DUST_COLOR_TRANSITION, effect, 260,
+                        0.65, 1.0, 0.65, 0.02,
                         new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
             }
-        }.runTaskTimer(plugin, 2L, 2L);
+        }.runTaskTimer(plugin, 5L, 3L);
     }
 
     private double getTeleportRange(Player player) {
@@ -165,6 +166,15 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         int originalSlot = player.getInventory().getHeldItemSlot();
         ItemStack weapon = held.clone();
         player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
+
+        // The normal artifact passive task cannot see the weapon while it is an ItemDisplay.
+        // Extend the existing artifact buffs so throwing the weapon does not make them expire.
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.STRENGTH, 1200, 0, true, false, true));
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.FIRE_RESISTANCE, 1200, 0, true, false, true));
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                org.bukkit.potion.PotionEffectType.SPEED, 1200, 1, true, false, true));
 
         Vector direction = player.getEyeLocation().getDirection().normalize();
         Location start = player.getEyeLocation().add(direction.clone().multiply(0.8));
@@ -223,6 +233,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                     spawnThrowTrail(display.getLocation());
                     target.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_HIT, 1.0f, 0.8f);
                     target.getWorld().playSound(target.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 0.75f, 1.35f);
+                    // The pull hit deals a small bonus hit of damage (one heart).
+                    target.damage(2.0, owner);
                     // The hit player is tethered to the mace while it flies back to the holder.
                     startReturn(id, target);
                     cancel();
