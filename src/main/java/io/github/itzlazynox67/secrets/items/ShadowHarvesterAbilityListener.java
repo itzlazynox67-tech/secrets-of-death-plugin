@@ -4,6 +4,7 @@ import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -266,13 +267,22 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (!isShadowHarvester(player.getInventory().getItemInMainHand())) continue;
-                if (player.isInvisible() || player.isOnGround() == false) continue;
+                if (player.isInvisible() || !player.isOnGround()) continue;
                 Location base = player.getLocation();
                 for (int i = 0; i < 32; i++) {
                     double angle = (Math.PI * 2.0 * i) / 32.0;
                     Location point = base.clone().add(Math.cos(angle), 0.1, Math.sin(angle));
                     point.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, point, 1,
                             0, 0, 0, 0,
+                            new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
+                }
+            }
+            // The datapack also gives dropped Shadow Harvester items their own red/black dust.
+            for (World world : Bukkit.getWorlds()) {
+                for (Item dropped : world.getEntitiesByClass(Item.class)) {
+                    if (!isShadowHarvester(dropped.getItemStack())) continue;
+                    world.spawnParticle(Particle.DUST_COLOR_TRANSITION, dropped.getLocation(), 5,
+                            0.3, 0.3, 0.3, 1.0,
                             new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
                 }
             }
