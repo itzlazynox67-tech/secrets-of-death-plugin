@@ -29,7 +29,8 @@ import java.util.UUID;
 
 public final class ShadowHarvesterAbilityListener implements Listener {
     private static final double THROW_RANGE = 32.0;
-    private static final double THROW_STEP = 0.8;
+    private static final double THROW_STEP = 1.35;
+    private static final double THROW_HITBOX = 1.25;
     private final SecretsPlugin plugin;
     private final Map<UUID, ThrownWeapon> thrownWeapons = new HashMap<>();
 
@@ -186,7 +187,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                     cancel();
                     return;
                 }
-                if (ticks++ >= 40) {
+                // Keep the same maximum throw range while using the faster per-tick travel speed.
+                if (ticks++ >= (int) Math.ceil(THROW_RANGE / THROW_STEP)) {
                     startReturn(id);
                     cancel();
                     return;
@@ -199,7 +201,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 RayTraceResult blockHit = previous.getWorld().rayTraceBlocks(previous, current.direction,
                         THROW_STEP, FluidCollisionMode.NEVER, true);
                 RayTraceResult entityHit = previous.getWorld().rayTraceEntities(previous, current.direction,
-                        THROW_STEP, 0.65, entity -> entity instanceof Player
+                        THROW_STEP, THROW_HITBOX, entity -> entity instanceof Player
                                 && !entity.getUniqueId().equals(current.ownerId));
 
                 if (entityHit != null && entityHit.getHitEntity() instanceof Player target) {
