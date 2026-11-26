@@ -24,6 +24,7 @@ public final class SilenceAbilityListener implements Listener {
     private final NamespacedKey artifactKey;
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> rampageEnds = new HashMap<>();
+    private final Map<UUID, Long> rampageCooldownEnds = new HashMap<>();
     private final Map<UUID, String> previousTeams = new HashMap<>();
     private final Map<UUID, String> glowTeams = new HashMap<>();
     private final Set<UUID> groundSlamming = new HashSet<>();
@@ -397,8 +398,15 @@ public final class SilenceAbilityListener implements Listener {
 
     private void activateRampage(Player player) {
         if (rampageEnds.getOrDefault(player.getUniqueId(), 0L) > System.currentTimeMillis()) return;
-        // Rampage lasts 5 minutes and has a 10-minute cooldown from activation.
-        if (!ready(player, "Rampage", 600_000L)) return;
+        // Rampage lasts 5 minutes, followed by a full 10-minute cooldown.
+        long now = System.currentTimeMillis();
+        long cooldownEnd = rampageCooldownEnds.getOrDefault(player.getUniqueId(), 0L);
+        if (now < cooldownEnd) {
+            long seconds = Math.max(1, (cooldownEnd - now + 999) / 1000);
+            player.sendMessage(ChatColor.DARK_AQUA + "Silence: Rampage recharges in " + seconds + "s.");
+            return;
+        }
+        rampageCooldownEnds.put(player.getUniqueId(), now + 900_000L);
         applyBlueGlow(player);
         player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 320, 0, true, false, true));
         rampageEnds.put(player.getUniqueId(), System.currentTimeMillis() + 300_000L);
