@@ -14,6 +14,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.*;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.util.*;
 
@@ -52,9 +54,8 @@ public final class ChampionBladeAbilityListener implements Listener {
                     }
                     if (isMember(id)) {
                         p.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 80, 2, true, false, true));
-                        p.setPlayerListName(ChatColor.YELLOW + p.getName());
-                        p.setCustomName(ChatColor.YELLOW + p.getName());
-                        p.setCustomNameVisible(true);
+                        applyTierEffects(p, tiers.getOrDefault(id, "LT5"));
+                        applyYellowNametag(p);
                     }
                 }
             }
@@ -70,6 +71,37 @@ public final class ChampionBladeAbilityListener implements Listener {
         return "champions_blade".equals(id(p.getInventory().getItemInOffHand()));
     }
     private boolean isMember(UUID id) { return owners.containsKey(id); }
+
+    private void applyTierEffects(Player p, String tier) {
+        PotionEffectType extra = switch (tier) {
+            case "HT5" -> PotionEffectType.SPEED;
+            case "LT4", "HT4" -> PotionEffectType.HASTE;
+            case "LT3", "HT3" -> PotionEffectType.RESISTANCE;
+            case "LT2", "HT2" -> PotionEffectType.JUMP_BOOST;
+            case "LT1", "HT1" -> PotionEffectType.REGENERATION;
+            default -> PotionEffectType.SPEED;
+        };
+        int amplifier = switch (tier) {
+            case "HT5", "HT4", "HT3", "HT2", "HT1" -> 1;
+            default -> 0;
+        };
+        p.addPotionEffect(new PotionEffect(extra, 80, amplifier, true, false, true));
+    }
+
+    private void applyYellowNametag(Player p) {
+        Scoreboard board = p.getScoreboard();
+        Team team = board.getTeam("champion_cause_yellow");
+        if (team == null) team = board.registerNewTeam("champion_cause_yellow");
+        team.setColor(ChatColor.YELLOW);
+        if (!team.hasEntry(p.getName())) team.addEntry(p.getName());
+        p.setPlayerListName(ChatColor.YELLOW + p.getName());
+    }
+
+    private void clearYellowNametag(Player p) {
+        Team team = p.getScoreboard().getTeam("champion_cause_yellow");
+        if (team != null) team.removeEntry(p.getName());
+        p.setPlayerListName(p.getName());
+    }
     private boolean isSameCause(UUID a, UUID b) {
         return a.equals(b) || (owners.containsKey(a) && owners.get(a).equals(owners.get(b)));
     }
@@ -131,7 +163,7 @@ public final class ChampionBladeAbilityListener implements Listener {
             ItemStack item=new ItemStack(Material.PLAYER_HEAD);
             ItemMeta meta=item.getItemMeta();
             meta.setDisplayName(ChatColor.YELLOW+Objects.toString(op.getName(),"Unknown"));
-            meta.setLore(List.of(ChatColor.GRAY+"Tier: "+tiers.getOrDefault(member,"LT5"),ChatColor.GREEN+"Click to change tier",ChatColor.RED+"Shift-click to ban"));
+            meta.setLore(List.of(ChatColor.GRAY+"Tier: "+tiers.getOrDefault(member,"LT5"),ChatColor.GREEN+"Click: change tier",ChatColor.GOLD+"Right-click: kick",ChatColor.RED+"Shift-click: ban"));
             meta.getPersistentDataContainer().set(new NamespacedKey(plugin,"champion_member"),PersistentDataType.STRING,member.toString());
             item.setItemMeta(meta); if(slot<45) inv.setItem(slot++,item);
         }
@@ -164,11 +196,15 @@ public final class ChampionBladeAbilityListener implements Listener {
             String raw=item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin,"champion_member"),PersistentDataType.STRING);
             if(raw==null) return;
             UUID member=UUID.fromString(raw);
-            if(e.isShiftClick()) {
+            OfflinePlayer target=Bukkit.getOfflinePlayer(member);
+            if(e.isShiftClick() || e.isRightClick()) {
                 owners.remove(member); tiers.remove(member); saveData();
-                OfflinePlayer target=Bukkit.getOfflinePlayer(member);
-                if(target.isOnline()) ((Player)target).sendMessage(ChatColor.GOLD+"You have received justice.");
-                p.sendMessage(ChatColor.GOLD+Objects.toString(target.getName(),"Player")+" has received justice.");
+                if(target.isOnline()) {
+                    Player online=(Player)target;
+                    clearYellowNametag(online);
+                    online.sendMessage(e.isShiftClick() ? ChatColor.GOLD+"You have received justice." : ChatColor.RED+"You have been kicked from the Cause.");
+                }
+                p.sendMessage(ChatColor.YELLOW+Objects.toString(target.getName(),"Player")+(e.isShiftClick() ? " has been banned from the Cause." : " has been kicked from the Cause."));
                 openManagement(p);
             } else openTierMenu(p,member);
             return;
