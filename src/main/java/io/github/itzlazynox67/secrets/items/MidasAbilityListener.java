@@ -60,7 +60,7 @@ public final class MidasAbilityListener implements Listener {
                     Player player = Bukkit.getPlayer(entry.getKey());
                     if (player != null) {
                         player.sendMessage(ChatColor.GOLD + "Golden Eternity has ended.");
-                        player.getWorld().spawnParticle(Particle.GOLD, player.getLocation().add(0, 1, 0), 18, 0.4, 0.6, 0.4, 0.02);
+                        player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 18, 0.4, 0.6, 0.4, 0.02);
                     }
                     return true;
                 });
@@ -103,7 +103,7 @@ public final class MidasAbilityListener implements Listener {
         goldenSlowness.put(id, level);
         goldenTouchExpiry.put(id, System.currentTimeMillis() + 5_000L);
         target.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SLOWNESS, 110, level - 1, true, true, true));
-        target.getWorld().spawnParticle(Particle.GOLD, target.getLocation().add(0, 1, 0), 12, 0.35, 0.5, 0.35, 0.02);
+        target.getWorld().spawnParticle(Particle.WAX_ON, target.getLocation().add(0, 1, 0), 12, 0.35, 0.5, 0.35, 0.02);
         target.getWorld().playSound(target.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.55f, 1.5f);
     }
 
@@ -114,7 +114,7 @@ public final class MidasAbilityListener implements Listener {
         reversalCooldowns.put(player.getUniqueId(), now + REVERSAL_COOLDOWN);
         reversalExpiry.put(player.getUniqueId(), now + REVERSAL_DURATION);
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1.1f, 1.5f);
-        player.getWorld().spawnParticle(Particle.GOLD, player.getLocation().add(0, 1, 0), 65, 0.8, 1.0, 0.8, 0.08);
+        player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 65, 0.8, 1.0, 0.8, 0.08);
         player.sendMessage(ChatColor.GOLD + "Golden Reversal activated! Melee attacks and projectiles are reflected for 5 seconds.");
     }
 
@@ -131,11 +131,11 @@ public final class MidasAbilityListener implements Listener {
             frozenUntil.put(target.getUniqueId(), now + ETERNITY_DURATION);
             target.setVelocity(new Vector(0, 0, 0));
             target.sendMessage(ChatColor.GOLD + "Golden Eternity has frozen you in place!");
-            target.getWorld().spawnParticle(Particle.GOLD, target.getLocation().add(0, 1, 0), 45, 0.45, 0.8, 0.45, 0.02);
+            target.getWorld().spawnParticle(Particle.WAX_ON, target.getLocation().add(0, 1, 0), 45, 0.45, 0.8, 0.45, 0.02);
             frozen++;
         }
         player.getWorld().playSound(center, Sound.BLOCK_BEACON_POWER_SELECT, 1.3f, 0.65f);
-        player.getWorld().spawnParticle(Particle.GOLD, center.clone().add(0, 1, 0), 120, 2.5, 1.5, 2.5, 0.08);
+        player.getWorld().spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0), 120, 2.5, 1.5, 2.5, 0.08);
         player.sendMessage(ChatColor.GOLD + "Golden Eternity froze " + frozen + " player(s) within 16 blocks for 4 seconds.");
     }
 
@@ -159,7 +159,7 @@ public final class MidasAbilityListener implements Listener {
             projectile.setShooter(defender);
             projectile.setVelocity(direction.multiply(Math.max(1.8, projectile.getVelocity().length())));
             projectile.setFireTicks(0);
-            projectile.getWorld().spawnParticle(Particle.GOLD, projectile.getLocation(), 12, 0.15, 0.15, 0.15, 0.02);
+            projectile.getWorld().spawnParticle(Particle.WAX_ON, projectile.getLocation(), 12, 0.15, 0.15, 0.15, 0.02);
             projectile.getWorld().playSound(projectile.getLocation(), Sound.ITEM_TRIDENT_RETURN, 0.8f, 1.6f);
             return;
         }
@@ -170,7 +170,7 @@ public final class MidasAbilityListener implements Listener {
             try { attacker.damage(Math.max(1.0, event.getFinalDamage()), defender); }
             finally { reflectedDamage.remove(attacker.getUniqueId()); }
         }
-        attacker.getWorld().spawnParticle(Particle.GOLD, attacker.getLocation().add(0, 1, 0), 20, 0.35, 0.5, 0.35, 0.03);
+        attacker.getWorld().spawnParticle(Particle.WAX_ON, attacker.getLocation().add(0, 1, 0), 20, 0.35, 0.5, 0.35, 0.03);
         attacker.getWorld().playSound(attacker.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.65f, 1.8f);
     }
 
