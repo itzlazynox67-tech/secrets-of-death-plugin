@@ -171,8 +171,13 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                     return;
                 }
                 Player owner = Bukkit.getPlayer(current.ownerId);
-                if (owner == null || !owner.isOnline() || ticks++ >= 40) {
+                if (owner == null || !owner.isOnline()) {
                     finishThrow(id);
+                    cancel();
+                    return;
+                }
+                if (ticks++ >= 40) {
+                    startReturn(id);
                     cancel();
                     return;
                 }
@@ -200,20 +205,87 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                     display.teleport(blockHit.getHitPosition().toLocation(previous.getWorld()));
                     spawnThrowTrail(display.getLocation());
                     display.getWorld().playSound(display.getLocation(), Sound.ITEM_TRIDENT_HIT_GROUND, 0.9f, 1.0f);
-                    finishThrow(id);
+                    startReturn(id);
                     cancel();
                     return;
                 }
 
                 display.teleport(next);
-                // Rotate the actual mace display as it travels, rather than
-                // showing a snowball carrying an item texture.
-                float spin = (float) (ticks * 0.42);
-                display.setTransformation(new Transformation(new Vector3f(0, 0, 0),
-                        new AxisAngle4f(spin, 0.7f, 1.0f, 0.25f),
-                        new Vector3f(1.15f, 1.15f, 1.15f),
-                        new AxisAngle4f(0, 0, 1, 0)));
+                // Spin the actual mace in a flatter, horizontal boomerang-like plane.
+                animateBoomerang(display, ticks);
                 spawnThrowTrail(next);
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void animateBoomerang(ItemDisplay display, int spinTick) {
+        float spin = spinTick * 0.78f;
+        float flatTilt = (float) Math.toRadians(78.0);
+        display.setTransformation(new Transformation(
+                new Vector3f(0.0f, 0.0f, 0.0f),
+                new AxisAngle4f(spin, 0.0f, 1.0f, 0.0f),
+                new Vector3f(1.18f, 1.18f, 1.18f),
+                new AxisAngle4f(flatTilt, 1.0f, 0.0f, 0.0f)
+        ));
+    }
+
+    private void startReturn(UUID id) {
+        ThrownWeapon state = thrownWeapons.get(id);
+        if (state == null || state.returning) return;
+
+        Player owner = Bukkit.getPlayer(state.ownerId);
+        if (owner == null || !owner.isOnline() || !owner.getWorld().equals(state.display.getWorld())) {
+            finishThrow(id);
+            return;
+        }
+
+        state.returning = true;
+        Location returnStart = state.display.getLocation().clone();
+        Vector side = new Vector(-state.direction.getZ(), 0.0, state.direction.getX());
+        if (side.lengthSquared() < 1.0E-6) side = new Vector(1.0, 0.0, 0.0);
+        else side.normalize();
+
+        new BukkitRunnable() {
+            private int returnTick;
+
+            @Override
+            public void run() {
+                ThrownWeapon current = thrownWeapons.get(id);
+                if (current == null) {
+                    cancel();
+                    return;
+                }
+                Player holder = Bukkit.getPlayer(current.ownerId);
+                if (holder == null || !holder.isOnline()
+                        || !holder.getWorld().equals(current.display.getWorld())
+                        || !current.display.isValid()) {
+                    finishThrow(id);
+                    cancel();
+                    return;
+                }
+
+                returnTick++;
+                double progress = Math.min(1.0, returnTick / 14.0);
+
+                Vector facing = holder.getLocation().getDirection().clone();
+                facing.setY(0.0);
+                if (facing.lengthSquared() > 1.0E-6) facing.normalize().multiply(0.45);
+                Location catchPoint = holder.getLocation().clone().add(facing).add(0.0, 1.2, 0.0);
+
+                Vector travel = catchPoint.toVector().subtract(returnStart.toVector()).multiply(progress);
+                double arc = Math.sin(Math.PI * progress);
+                Location point = returnStart.clone().add(travel)
+                        .add(side.clone().multiply(arc * 1.1))
+                        .add(0.0, arc * 0.35, 0.0);
+
+                current.display.teleport(point);
+                animateBoomerang(current.display, 40 + returnTick);
+                spawnThrowTrail(point);
+
+                if (progress >= 1.0) {
+                    finishThrow(id);
+                    cancel();
+                }
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
@@ -238,7 +310,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 }
                 if (!target.isOnline() || holder == null || !holder.isOnline()
                         || !target.getWorld().equals(holder.getWorld()) || ticks++ >= 30) {
-                    finishThrow(id);
+                    startReturn(id);
                     cancel();
                     return;
                 }
@@ -246,7 +318,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 Vector pull = holder.getLocation().toVector().subtract(target.getLocation().toVector());
                 double distance = pull.length();
                 if (distance <= 2.0) {
-                    finishThrow(id);
+                    startReturn(id);
                     cancel();
                     return;
                 }
@@ -329,6 +401,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         private final ItemDisplay display;
         private final int originalSlot;
         private final Vector direction;
+        private boolean returning;
 
         private ThrownWeapon(UUID ownerId, ItemStack weapon, ItemDisplay display, int originalSlot, Vector direction) {
             this.ownerId = ownerId;
