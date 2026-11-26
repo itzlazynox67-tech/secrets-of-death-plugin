@@ -301,6 +301,17 @@ public final class ArtifactAbilityListener implements Listener {
         if (item == null || !item.hasItemMeta()) return;
         ItemMeta meta = item.getItemMeta();
         switch (id) {
+            case "shadow_harvester" -> {
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.FIRE_ASPECT, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.KNOCKBACK, 1, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 15, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.SWEEPING_EDGE, 3, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.DENSITY, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.WIND_BURST, 2, true);
+                meta.setUnbreakable(true);
+                // The datapack hides the enchantment list while retaining the glint.
+                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+            }
             case "godswill" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.SHARPNESS, 20, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.RIPTIDE, 6, true);
