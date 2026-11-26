@@ -223,6 +223,9 @@ public final class TarnishSwordAbilityListener implements Listener {
             wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: Stun recharges in " + Math.max(1, (readyAt - now + 999) / 1000) + "s.");
             return;
         }
+        // Start the 60-second cooldown as soon as the ability is activated,
+        // so repeated clicks cannot be used to spam the target scan when nobody is nearby.
+        stunAbilityCooldowns.put(wielder.getUniqueId(), now + 60_000L);
         int stunned = 0;
         Location wielderLocation = wielder.getLocation();
         for (Player target : Bukkit.getOnlinePlayers()) {
@@ -233,11 +236,10 @@ public final class TarnishSwordAbilityListener implements Listener {
             stunned++;
         }
         if (stunned > 0) {
-            stunAbilityCooldowns.put(wielder.getUniqueId(), now + 60_000L);
-            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: stunned " + stunned + " nearby enemy player(s) for 30 seconds.");
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: stunned " + stunned + " nearby enemy player(s) for 30 seconds. Stun cooldown: 60 seconds.");
             wielder.getWorld().playSound(wielder.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.5f, .6f);
         } else {
-            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players within 20 blocks to stun. Check that both players are not assigned to the same scoreboard team.");
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players within 20 blocks to stun. Stun cooldown: 60 seconds.");
         }
     }
 
