@@ -71,15 +71,15 @@ public final class ArtifactAbilityListener implements Listener {
             @Override public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!hasArtifact(player)) continue;
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, true));
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 60, 0, true, false, true));
-                    player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 1, true, false, true));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 240, 0, true, false, true));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 240, 0, true, false, true));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 240, 1, true, false, true));
                     if (nearExplosiveThreat(player)) {
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 1, true, true, true));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 240, 1, true, true, true));
                     }
                     if ("eclipse".equals(id(player.getInventory().getItemInMainHand()))
                             || "eclipse".equals(id(player.getInventory().getItemInOffHand()))) {
-                        player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 60, 0, true, false, false));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 240, 0, true, false, false));
                     }
                     if (hasItemAnywhere(player, "book")) {
                         Location ashCenter = player.getLocation().add(0, 0.15, 0);
