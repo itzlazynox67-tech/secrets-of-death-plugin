@@ -310,7 +310,15 @@ public final class SilenceAbilityListener implements Listener {
                     if (block.getType().isAir() || block.getState() instanceof org.bukkit.block.TileState) continue;
                     BlockState original = block.getState();
                     snapshots.add(new BlockSnapshot(world, x, y, z, original));
-                    block.setType(Material.SCULK, false);
+                    // Build a varied sculk landscape instead of covering everything in plain sculk.
+                    Material[] sculkPalette = {
+                            Material.SCULK, Material.SCULK, Material.SCULK,
+                            Material.SCULK_VEIN, Material.SCULK_SENSOR,
+                            Material.CALIBRATED_SCULK_SENSOR, Material.SCULK_SHRIEKER,
+                            Material.SCULK_CATALYST
+                    };
+                    Material domainBlock = sculkPalette[ThreadLocalRandom.current().nextInt(sculkPalette.length)];
+                    block.setType(domainBlock, false);
                     processed++;
                 }
                 if (cursor >= total) cancel();
@@ -323,7 +331,12 @@ public final class SilenceAbilityListener implements Listener {
                     World w = snapshot.world();
                     if (!w.isChunkLoaded(snapshot.x() >> 4, snapshot.z() >> 4)) continue;
                     org.bukkit.block.Block current = w.getBlockAt(snapshot.x(), snapshot.y(), snapshot.z());
-                    if (current.getType() == Material.SCULK) snapshot.state().update(true, false);
+                    Material currentType = current.getType();
+                    if (currentType == Material.SCULK || currentType == Material.SCULK_VEIN
+                            || currentType == Material.SCULK_SENSOR || currentType == Material.CALIBRATED_SCULK_SENSOR
+                            || currentType == Material.SCULK_SHRIEKER || currentType == Material.SCULK_CATALYST) {
+                        snapshot.state().update(true, false);
+                    }
                 }
                 snapshots.clear();
             }
