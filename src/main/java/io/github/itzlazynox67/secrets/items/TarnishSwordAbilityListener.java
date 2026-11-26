@@ -59,7 +59,10 @@ public final class TarnishSwordAbilityListener implements Listener {
                         if (now < waterStrikeCooldowns.getOrDefault(nearby.getUniqueId(), 0L)) continue;
                         waterStrikeCooldowns.put(nearby.getUniqueId(), now + 1000L);
                         Location strikeLocation = nearby.getLocation().clone();
-                        nearby.getWorld().strikeLightning(strikeLocation);
+                        // Visual-only lightning plus damage to the selected player only.
+                        // A real lightning entity can also damage nearby mobs and animals.
+                        nearby.getWorld().strikeLightningEffect(strikeLocation);
+                        nearby.damage(5.0, wielder);
                         nearby.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, strikeLocation.clone().add(0, 1, 0),
                                 18, .6, .8, .6, .08);
                         nearby.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, strikeLocation,
