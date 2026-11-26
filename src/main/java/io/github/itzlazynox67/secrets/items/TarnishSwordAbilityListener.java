@@ -51,13 +51,19 @@ public final class TarnishSwordAbilityListener implements Listener {
                         wielder.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, at, 4, .5, .7, .5, .02);
                         wielder.getWorld().spawnParticle(Particle.GUST, at, 2, .35, .45, .35, .02);
                     }
-                    for (Entity entity : wielder.getNearbyEntities(20, 20, 20)) {
-                        if (!(entity instanceof Player nearby) || nearby.equals(wielder) || !isInWater(nearby)
-                                || sameTeam(wielder, nearby)) continue;
+                    Location wielderLocation = wielder.getLocation();
+                    for (Player nearby : Bukkit.getOnlinePlayers()) {
+                        if (nearby.equals(wielder) || !nearby.getWorld().equals(wielder.getWorld())
+                                || nearby.getLocation().distanceSquared(wielderLocation) > 400.0
+                                || !isInWater(nearby) || sameTeam(wielder, nearby)) continue;
                         if (now < waterStrikeCooldowns.getOrDefault(nearby.getUniqueId(), 0L)) continue;
                         waterStrikeCooldowns.put(nearby.getUniqueId(), now + 1000L);
-                        nearby.getWorld().strikeLightning(nearby.getLocation());
-                        nearby.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, nearby.getLocation(), 8, .5, 1, .5, .03);
+                        Location strikeLocation = nearby.getLocation().clone();
+                        nearby.getWorld().strikeLightning(strikeLocation);
+                        nearby.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, strikeLocation.clone().add(0, 1, 0),
+                                18, .6, .8, .6, .08);
+                        nearby.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, strikeLocation,
+                                8, .5, 1, .5, .03);
                     }
                 }
                 stunnedUntil.entrySet().removeIf(entry -> entry.getValue() <= now);
@@ -100,8 +106,10 @@ public final class TarnishSwordAbilityListener implements Listener {
 
     private boolean isInWater(Player player) {
         Material feet = player.getLocation().getBlock().getType();
+        Material body = player.getLocation().clone().add(0, 1, 0).getBlock().getType();
         Material head = player.getEyeLocation().getBlock().getType();
-        return player.isInWater() || feet == Material.WATER || head == Material.WATER;
+        return player.isInWater() || player.isSwimming()
+                || feet == Material.WATER || body == Material.WATER || head == Material.WATER;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
