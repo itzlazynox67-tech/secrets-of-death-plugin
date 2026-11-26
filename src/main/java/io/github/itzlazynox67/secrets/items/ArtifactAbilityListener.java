@@ -194,8 +194,7 @@ public final class ArtifactAbilityListener implements Listener {
                         deadlockStunUntil.put(stunnedPlayer.getUniqueId(), System.currentTimeMillis() + 6000L);
                         stunnedPlayer.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
                     }
-                    target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 30,
-                            0.4, 0.8, 0.4, new Particle.DustOptions(Color.RED, 1.8f));
+                    spawnDeadLockVisual(target);
                     if (target instanceof Player victim) victim.sendMessage(ChatColor.DARK_RED + "DeadLock has locked you!");
                     target.damage(7.0);
                     locked++;
@@ -212,9 +211,7 @@ public final class ArtifactAbilityListener implements Listener {
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
         Location center = struckPlayer.getLocation();
         player.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
-        player.getWorld().spawnParticle(Particle.DUST, center, 48, 3.0, 1.5, 3.0,
-                new Particle.DustOptions(Color.RED, 1.8f));
-        player.getWorld().spawnParticle(Particle.SMOKE, center, 24, 3.0, 1.5, 3.0, 0.08);
+        spawnDeathEmbraceVisual(center);
         deathEmbraceSplashProcessing.add(player.getUniqueId());
         try {
             for (Entity entity : struckPlayer.getNearbyEntities(15, 15, 15)) {
@@ -227,6 +224,55 @@ public final class ArtifactAbilityListener implements Listener {
         } finally {
             deathEmbraceSplashProcessing.remove(player.getUniqueId());
         }
+    }
+
+    private void spawnDeadLockVisual(LivingEntity target) {
+        Location base = target.getLocation().add(0, 0.15, 0);
+        World world = target.getWorld();
+        Particle.DustOptions crimson = new Particle.DustOptions(Color.fromRGB(190, 12, 35), 1.8f);
+        Particle.DustOptions dark = new Particle.DustOptions(Color.fromRGB(35, 0, 8), 1.25f);
+
+        // Twin crimson rings and crackling sparks make the stun look like a lock.
+        for (int ring = 0; ring < 2; ring++) {
+            double radius = ring == 0 ? 0.8 : 1.15;
+            double y = ring == 0 ? 0.12 : 0.38;
+            for (int point = 0; point < 32; point++) {
+                double angle = Math.PI * 2 * point / 32.0 + ring * 0.12;
+                Location particle = base.clone().add(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+                world.spawnParticle(Particle.DUST, particle, 1, 0, 0, 0, 0, ring == 0 ? crimson : dark);
+                if (point % 4 == 0) {
+                    world.spawnParticle(Particle.SOUL_FIRE_FLAME, particle, 1, 0.02, 0.12, 0.02, 0.005);
+                }
+            }
+        }
+        world.spawnParticle(Particle.ELECTRIC_SPARK, base.clone().add(0, 1, 0), 24, 0.45, 0.8, 0.45, 0.08);
+        world.spawnParticle(Particle.CRIT, base.clone().add(0, 1, 0), 18, 0.35, 0.7, 0.35, 0.12);
+        world.spawnParticle(Particle.SMOKE, base.clone().add(0, 0.5, 0), 12, 0.25, 0.45, 0.25, 0.015);
+    }
+
+    private void spawnDeathEmbraceVisual(Location center) {
+        World world = center.getWorld();
+        if (world == null) return;
+        Particle.DustOptions blood = new Particle.DustOptions(Color.fromRGB(235, 18, 42), 2.2f);
+        Particle.DustOptions voidDust = new Particle.DustOptions(Color.fromRGB(18, 0, 12), 1.6f);
+
+        // Three expanding crimson-and-black shockwave rings.
+        for (int ring = 0; ring < 3; ring++) {
+            double radius = 1.5 + ring * 1.65;
+            double y = 0.25 + ring * 0.18;
+            for (int point = 0; point < 48; point++) {
+                double angle = Math.PI * 2 * point / 48.0;
+                Location particle = center.clone().add(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+                world.spawnParticle(Particle.DUST, particle, 1, 0, 0, 0, 0, ring == 1 ? voidDust : blood);
+                if (point % 6 == 0) {
+                    world.spawnParticle(Particle.SOUL_FIRE_FLAME, particle, 1, 0.03, 0.08, 0.03, 0.01);
+                }
+            }
+        }
+        world.spawnParticle(Particle.REVERSE_PORTAL, center.clone().add(0, 0.8, 0), 90, 2.2, 1.0, 2.2, 0.12);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, center.clone().add(0, 1, 0), 55, 2.4, 1.1, 2.4, 0.16);
+        world.spawnParticle(Particle.FLASH, center.clone().add(0, 1, 0), 1);
+        world.spawnParticle(Particle.SMOKE, center.clone().add(0, 0.4, 0), 35, 2.0, 0.7, 2.0, 0.035);
     }
 
     @EventHandler
