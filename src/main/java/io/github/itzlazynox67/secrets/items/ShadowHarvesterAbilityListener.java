@@ -93,15 +93,29 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         player.teleport(to);
         player.setFallDistance(0);
 
-        // Datapack dash trail: minecraft:end_rod.
+        // Keep the departure effect at the old location.
         from.getWorld().spawnParticle(Particle.END_ROD, from.clone().add(0, 1, 0),
-                1000, 0.5, 1.0, 1.0, 0.5);
-        to.getWorld().spawnParticle(Particle.END_ROD, to.clone().add(0, 1, 0),
-                1000, 0.5, 1.0, 1.0, 0.5);
-
-        // Datapack stop effect: red dust fading to black.
-        spawnHarvesterBurst(to.clone().add(0, 1, 0), 1000);
+                180, 0.5, 1.0, 1.0, 0.12);
         to.getWorld().playSound(to, Sound.ENTITY_WIND_CHARGE_WIND_BURST, 1.0f, 1.0f);
+
+        // Send arrival particles directly to the teleported player after the destination
+        // chunk has had time to load. World-wide particles sent on the teleport tick can
+        // arrive before the client has loaded the far-away destination.
+        new BukkitRunnable() {
+            private int bursts;
+            @Override public void run() {
+                if (!player.isOnline() || !player.getWorld().equals(to.getWorld())
+                        || player.getLocation().distanceSquared(to) > 16.0 || bursts++ >= 3) {
+                    cancel();
+                    return;
+                }
+                Location effect = to.clone().add(0, 1, 0);
+                player.spawnParticle(Particle.END_ROD, effect, 180, 0.5, 1.0, 1.0, 0.12);
+                player.spawnParticle(Particle.DUST_COLOR_TRANSITION, effect, 220,
+                        0.5, 1.0, 0.5, 0.02,
+                        new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
+            }
+        }.runTaskTimer(plugin, 2L, 2L);
     }
 
     private double getTeleportRange(Player player) {
