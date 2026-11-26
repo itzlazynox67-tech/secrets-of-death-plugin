@@ -53,7 +53,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                     }
                     for (Entity entity : wielder.getNearbyEntities(20, 20, 20)) {
                         if (!(entity instanceof Player nearby) || nearby.equals(wielder) || !isInWater(nearby)
-                                || sameTeam(wielder, nearby) || plugin.getProtectionManager().isProtected(nearby)) continue;
+                                || sameTeam(wielder, nearby)) continue;
                         if (now < waterStrikeCooldowns.getOrDefault(nearby.getUniqueId(), 0L)) continue;
                         waterStrikeCooldowns.put(nearby.getUniqueId(), now + 1000L);
                         nearby.getWorld().strikeLightning(nearby.getLocation());
@@ -108,7 +108,6 @@ public final class TarnishSwordAbilityListener implements Listener {
     public void onTarnishHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player wielder) || !isHoldingTarnish(wielder)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(wielder)) return;
-        if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) return;
 
         int hits = hitCounts.merge(wielder.getUniqueId(), 1, Integer::sum);
         Location hitLocation = target.getLocation().clone();
@@ -130,7 +129,7 @@ public final class TarnishSwordAbilityListener implements Listener {
         }
         for (Entity entity : world.getNearbyEntities(center, 10, 10, 10)) {
             if (!(entity instanceof Player nearby) || nearby.equals(wielder) || nearby.equals(target)) continue;
-            if (plugin.getProtectionManager().isProtected(nearby) || protectedFromSummons(wielder, nearby)) continue;
+            if (protectedFromSummons(wielder, nearby)) continue;
             nearby.damage(20.0);
             strike(world, nearby.getLocation());
         }
@@ -190,7 +189,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             if (target.equals(wielder) || !target.getWorld().equals(wielder.getWorld())
                     || target.getLocation().distanceSquared(wielderLocation) > 100.0
                     || protectedFromSummons(wielder, target)
-                    || plugin.getProtectionManager().isProtected(target)) continue;
+) continue;
             stun(target);
             stunned++;
         }
