@@ -4,18 +4,22 @@ import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Snowball;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,12 +27,14 @@ import java.util.UUID;
 
 public final class ShadowHarvesterAbilityListener implements Listener {
     private static final double TELEPORT_RANGE = 128.0;
-    private static final double THROW_SPEED = 2.4;
+    private static final double THROW_RANGE = 32.0;
+    private static final double THROW_STEP = 0.8;
     private final SecretsPlugin plugin;
     private final Map<UUID, ThrownWeapon> thrownWeapons = new HashMap<>();
 
     public ShadowHarvesterAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
+        startPassiveParticles();
     }
 
     @EventHandler
@@ -40,11 +46,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
 
         event.setCancelled(true);
         Player player = event.getPlayer();
-        if (player.isSneaking()) {
-            teleportToLook(player);
-        } else {
-            throwWeapon(player, held);
-        }
+        if (player.isSneaking()) teleportToLook(player);
+        else throwWeapon(player, held);
     }
 
     private boolean isShadowHarvester(ItemStack item) {
@@ -54,6 +57,10 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 .get(key, PersistentDataType.STRING));
     }
 
+    /*
+     * The datapack's Shadow Harvester uses End Rods during its movement and
+     * red-to-black dust at the stopping point. Keep those signature effects.
+     */
     private void teleportToLook(Player player) {
         Location eye = player.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
@@ -67,7 +74,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
             destination = findSafeSpot(block.getRelative(face).getLocation());
             if (destination == null) destination = findSafeSpot(block.getLocation().add(0, 1, 0));
         } else {
-            destination = findSafeSpot(eye.clone().add(direction.multiply(64.0)));
+            destination = findSafeSpot(eye.clone().add(direction.multiply(TELEPORT_RANGE)));
         }
 
         if (destination == null) {
@@ -77,12 +84,20 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         }
 
         Location from = player.getLocation();
+        Location to = destination.setDirection(direction);
         player.setFallDistance(0);
-        player.teleport(destination.setDirection(direction));
+        player.teleport(to);
         player.setFallDistance(0);
-        player.getWorld().spawnParticle(Particle.PORTAL, from.add(0, 1, 0), 45, 0.45, 0.8, 0.45, 0.35);
-        player.getWorld().spawnParticle(Particle.PORTAL, destination.clone().add(0, 1, 0), 45, 0.45, 0.8, 0.45, 0.35);
-        player.getWorld().playSound(destination, Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 0.8f);
+
+        // Datapack dash trail: minecraft:end_rod.
+        from.getWorld().spawnParticle(Particle.END_ROD, from.clone().add(0, 1, 0),
+                1000, 0.5, 1.0, 1.0, 0.5);
+        to.getWorld().spawnParticle(Particle.END_ROD, to.clone().add(0, 1, 0),
+                1000, 0.5, 1.0, 1.0, 0.5);
+
+        // Datapack stop effect: red dust fading to black.
+        spawnHarvesterBurst(to.clone().add(0, 1, 0), 1000);
+        to.getWorld().playSound(to, Sound.ENTITY_WIND_CHARGE_WIND_BURST, 1.0f, 1.0f);
     }
 
     private Location findSafeSpot(Location anchor) {
@@ -97,9 +112,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 for (int dx = -radius; dx <= radius; dx++) {
                     for (int dz = -radius; dz <= radius; dz++) {
                         if (radius > 0 && Math.max(Math.abs(dx), Math.abs(dz)) != radius) continue;
-                        int x = baseX + dx;
-                        int y = baseY + dy;
-                        int z = baseZ + dz;
+                        int x = baseX + dx, y = baseY + dy, z = baseZ + dz;
                         if (y <= world.getMinHeight() || y + 1 >= world.getMaxHeight()) continue;
                         Block feet = world.getBlockAt(x, y, z);
                         Block head = world.getBlockAt(x, y + 1, z);
@@ -121,57 +134,105 @@ public final class ShadowHarvesterAbilityListener implements Listener {
             return;
         }
 
+        int originalSlot = player.getInventory().getHeldItemSlot();
         ItemStack weapon = held.clone();
         player.getInventory().setItemInMainHand(new ItemStack(Material.AIR));
-        Snowball projectile = player.launchProjectile(Snowball.class);
-        projectile.setItem(weapon.clone());
-        projectile.setGravity(false);
-        projectile.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(THROW_SPEED));
 
-        UUID projectileId = projectile.getUniqueId();
-        thrownWeapons.put(projectileId, new ThrownWeapon(player.getUniqueId(), weapon, projectile,
-                player.getInventory().getHeldItemSlot()));
-        Bukkit.getScheduler().runTaskLater(plugin, () -> finishThrow(projectileId), 100L);
+        Vector direction = player.getEyeLocation().getDirection().normalize();
+        Location start = player.getEyeLocation().add(direction.clone().multiply(0.8));
+        ItemDisplay display = player.getWorld().spawn(start, ItemDisplay.class, entity -> {
+            entity.setItemStack(weapon.clone());
+            entity.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.FIXED);
+            entity.setBillboard(Display.Billboard.FIXED);
+            entity.setPersistent(false);
+            entity.setInvulnerable(true);
+            entity.setGravity(false);
+            entity.setInterpolationDuration(1);
+            entity.setTeleportDuration(1);
+        });
+
+        UUID id = display.getUniqueId();
+        ThrownWeapon state = new ThrownWeapon(player.getUniqueId(), weapon, display, originalSlot, direction);
+        thrownWeapons.put(id, state);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, 0.65f);
-        player.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, player.getEyeLocation(), 12,
-                0.12, 0.12, 0.12, 0.0,
-                new Particle.DustTransition(Color.fromRGB(105, 0, 150), Color.BLACK, 1.1f));
-    }
+        player.getWorld().spawnParticle(Particle.CRIT, start, 8, 0.12, 0.12, 0.12, 0.05);
 
-    @EventHandler
-    public void onThrownWeaponHit(ProjectileHitEvent event) {
-        if (!(event.getEntity() instanceof Snowball projectile)) return;
-        UUID projectileId = projectile.getUniqueId();
-        ThrownWeapon state = thrownWeapons.get(projectileId);
-        if (state == null) return;
-
-        if (event.getHitEntity() instanceof Player target && !target.getUniqueId().equals(state.ownerId)) {
-            Player holder = Bukkit.getPlayer(state.ownerId);
-            if (holder == null || !holder.isOnline() || !holder.getWorld().equals(target.getWorld())) {
-                finishThrow(projectileId);
-                return;
-            }
-            projectile.remove();
-            pullPlayer(projectileId, target, holder);
-        } else if (event.getHitEntity() != null || event.getHitBlock() != null) {
-            finishThrow(projectileId);
-        }
-    }
-
-    private void pullPlayer(UUID projectileId, Player target, Player holder) {
-        new org.bukkit.scheduler.BukkitRunnable() {
-            private int ticks = 0;
+        new BukkitRunnable() {
+            private int ticks;
 
             @Override
             public void run() {
-                ThrownWeapon state = thrownWeapons.get(projectileId);
+                ThrownWeapon current = thrownWeapons.get(id);
+                if (current == null || !display.isValid()) {
+                    cancel();
+                    return;
+                }
+                Player owner = Bukkit.getPlayer(current.ownerId);
+                if (owner == null || !owner.isOnline() || ticks++ >= 40) {
+                    finishThrow(id);
+                    cancel();
+                    return;
+                }
+
+                Location previous = display.getLocation();
+                Vector step = current.direction.clone().multiply(THROW_STEP);
+                Location next = previous.clone().add(step);
+
+                RayTraceResult blockHit = previous.getWorld().rayTraceBlocks(previous, current.direction,
+                        THROW_STEP, FluidCollisionMode.NEVER, true);
+                RayTraceResult entityHit = previous.getWorld().rayTraceEntities(previous, current.direction,
+                        THROW_STEP, 0.65, entity -> entity instanceof Player
+                                && !entity.getUniqueId().equals(current.ownerId));
+
+                if (entityHit != null && entityHit.getHitEntity() instanceof Player target) {
+                    display.teleport(entityHit.getHitPosition().toLocation(previous.getWorld()));
+                    spawnThrowTrail(display.getLocation());
+                    pullPlayer(id, target);
+                    cancel();
+                    return;
+                }
+                if (blockHit != null) {
+                    display.teleport(blockHit.getHitPosition().toLocation(previous.getWorld()));
+                    spawnThrowTrail(display.getLocation());
+                    finishThrow(id);
+                    cancel();
+                    return;
+                }
+
+                display.teleport(next);
+                // Rotate the actual mace display as it travels, rather than
+                // showing a snowball carrying an item texture.
+                float spin = (float) (ticks * 0.42);
+                display.setTransformation(new Transformation(new Vector3f(0, 0, 0),
+                        new AxisAngle4f(spin, 0.7f, 1.0f, 0.25f),
+                        new Vector3f(1.15f, 1.15f, 1.15f),
+                        new AxisAngle4f(0, 0, 1, 0)));
+                spawnThrowTrail(next);
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void spawnThrowTrail(Location location) {
+        location.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, location, 3,
+                0.08, 0.08, 0.08, 0.0,
+                new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 0.9f));
+    }
+
+    private void pullPlayer(UUID id, Player target) {
+        new BukkitRunnable() {
+            private int ticks;
+
+            @Override
+            public void run() {
+                ThrownWeapon state = thrownWeapons.get(id);
+                Player holder = state == null ? null : Bukkit.getPlayer(state.ownerId);
                 if (state == null) {
                     cancel();
                     return;
                 }
-                if (!target.isOnline() || !holder.isOnline() || !target.getWorld().equals(holder.getWorld())
-                        || ticks++ >= 30) {
-                    finishThrow(projectileId);
+                if (!target.isOnline() || holder == null || !holder.isOnline()
+                        || !target.getWorld().equals(holder.getWorld()) || ticks++ >= 30) {
+                    finishThrow(id);
                     cancel();
                     return;
                 }
@@ -179,37 +240,60 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 Vector pull = holder.getLocation().toVector().subtract(target.getLocation().toVector());
                 double distance = pull.length();
                 if (distance <= 2.0) {
-                    finishThrow(projectileId);
+                    finishThrow(id);
                     cancel();
                     return;
                 }
                 pull.normalize().multiply(Math.min(1.05, 0.35 + distance * 0.045));
                 pull.setY(Math.max(0.12, Math.min(0.55, pull.getY() + 0.18)));
                 target.setVelocity(pull);
-                target.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION,
-                        target.getLocation().add(0, 1, 0), 8, 0.25, 0.45, 0.25, 0.0,
-                        new Particle.DustTransition(Color.fromRGB(105, 0, 150), Color.BLACK, 0.9f));
+                spawnThrowTrail(target.getLocation().add(0, 1, 0));
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    private void finishThrow(UUID projectileId) {
-        ThrownWeapon state = thrownWeapons.remove(projectileId);
+    private void spawnHarvesterBurst(Location center, int count) {
+        center.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, center, count,
+                0.5, 1.0, 0.5, 0.5,
+                new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
+    }
+
+    /*
+     * The datapack draws the holder's signature red-to-black dust ring on
+     * the ground every five ticks, only while grounded and not invisible.
+     */
+    private void startPassiveParticles() {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!isShadowHarvester(player.getInventory().getItemInMainHand())) continue;
+                if (player.isInvisible() || player.isOnGround() == false) continue;
+                Location base = player.getLocation();
+                for (int i = 0; i < 32; i++) {
+                    double angle = (Math.PI * 2.0 * i) / 32.0;
+                    Location point = base.clone().add(Math.cos(angle), 0.1, Math.sin(angle));
+                    point.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, point, 1,
+                            0, 0, 0, 0,
+                            new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
+                }
+            }
+        }, 5L, 5L);
+    }
+
+    private void finishThrow(UUID id) {
+        ThrownWeapon state = thrownWeapons.remove(id);
         if (state == null) return;
-        if (state.projectile.isValid()) state.projectile.remove();
+        if (state.display.isValid()) state.display.remove();
 
         Player owner = Bukkit.getPlayer(state.ownerId);
         if (owner == null || !owner.isOnline()) {
-            state.projectile.getWorld().dropItemNaturally(state.projectile.getLocation(), state.weapon);
+            state.display.getWorld().dropItemNaturally(state.display.getLocation(), state.weapon);
             return;
         }
 
-        int originalSlot = state.originalSlot;
-        if (originalSlot >= 0 && originalSlot < owner.getInventory().getSize()
-                && (owner.getInventory().getItem(originalSlot) == null
-                || owner.getInventory().getItem(originalSlot).getType().isAir())) {
-            owner.getInventory().setItem(originalSlot, state.weapon);
-        } else {
+        int slot = state.originalSlot;
+        ItemStack existing = owner.getInventory().getItem(slot);
+        if (existing == null || existing.getType().isAir()) owner.getInventory().setItem(slot, state.weapon);
+        else {
             Map<Integer, ItemStack> overflow = owner.getInventory().addItem(state.weapon);
             overflow.values().forEach(left -> owner.getWorld().dropItemNaturally(owner.getLocation(), left));
         }
@@ -227,14 +311,16 @@ public final class ShadowHarvesterAbilityListener implements Listener {
     private static final class ThrownWeapon {
         private final UUID ownerId;
         private final ItemStack weapon;
-        private final Snowball projectile;
+        private final ItemDisplay display;
         private final int originalSlot;
+        private final Vector direction;
 
-        private ThrownWeapon(UUID ownerId, ItemStack weapon, Snowball projectile, int originalSlot) {
+        private ThrownWeapon(UUID ownerId, ItemStack weapon, ItemDisplay display, int originalSlot, Vector direction) {
             this.ownerId = ownerId;
             this.weapon = weapon;
-            this.projectile = projectile;
+            this.display = display;
             this.originalSlot = originalSlot;
+            this.direction = direction.clone();
         }
     }
 }
