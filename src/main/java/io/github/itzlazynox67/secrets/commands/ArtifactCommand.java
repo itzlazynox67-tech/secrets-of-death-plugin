@@ -250,7 +250,8 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
             }
         }
         giveOrDrop(player, item);
-        if (secretsArmor) secretsArmorCooldowns.computeIfAbsent(player.getUniqueId(), ignored -> new java.util.HashMap<>())\n                .put(id, now + 20 * 60 * 1000L);
+        if (secretsArmor) secretsArmorCooldowns.computeIfAbsent(player.getUniqueId(), ignored -> new java.util.HashMap<>())
+                .put(id, now + 20 * 60 * 1000L);
         playClaimEffects(player);
         player.sendMessage(msg("&aClaimed &f" + id.replace('_', ' ') + "&a."));
     }
