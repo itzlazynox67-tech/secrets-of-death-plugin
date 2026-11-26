@@ -144,7 +144,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                 || feet == Material.WATER || body == Material.WATER || head == Material.WATER;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onTarnishHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player wielder) || !isHoldingTarnish(wielder)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(wielder)) return;
@@ -233,13 +233,13 @@ public final class TarnishSwordAbilityListener implements Listener {
         target.getWorld().playSound(target.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.2f, .65f);
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onRightClickStun(PlayerInteractEvent event) {
-        // Read the actual item used for this interaction. This supports Tarnish in either hand
-        // and still runs if another plugin cancels the vanilla interaction later in the event.
+        // Process the main-hand interaction once, matching the original working trigger.
+        if (event.getHand() == null || event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player wielder = event.getPlayer();
-        if (!isTarnishItem(event.getItem())) return;
+        if (!isHoldingTarnish(wielder)) return;
         event.setCancelled(true);
         long now = System.currentTimeMillis();
         long readyAt = stunAbilityCooldowns.getOrDefault(wielder.getUniqueId(), 0L);
