@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class ShadowHarvesterAbilityListener implements Listener {
-    private static final double TELEPORT_RANGE = 128.0;
     private static final double THROW_RANGE = 32.0;
     private static final double THROW_STEP = 0.8;
     private final SecretsPlugin plugin;
@@ -66,7 +65,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
     private void teleportToLook(Player player) {
         Location eye = player.getEyeLocation();
         Vector direction = eye.getDirection().normalize();
-        RayTraceResult hit = player.getWorld().rayTraceBlocks(eye, direction, TELEPORT_RANGE,
+        double teleportRange = getTeleportRange(player);
+        RayTraceResult hit = player.getWorld().rayTraceBlocks(eye, direction, teleportRange,
                 FluidCollisionMode.NEVER, true);
 
         Location destination;
@@ -76,7 +76,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
             destination = findSafeSpot(block.getRelative(face).getLocation());
             if (destination == null) destination = findSafeSpot(block.getLocation().add(0, 1, 0));
         } else {
-            destination = findSafeSpot(eye.clone().add(direction.multiply(TELEPORT_RANGE)));
+            destination = findSafeSpot(eye.clone().add(direction.clone().multiply(teleportRange)));
         }
 
         if (destination == null) {
@@ -101,6 +101,16 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         // Datapack stop effect: red dust fading to black.
         spawnHarvesterBurst(to.clone().add(0, 1, 0), 1000);
         to.getWorld().playSound(to, Sound.ENTITY_WIND_CHARGE_WIND_BURST, 1.0f, 1.0f);
+    }
+
+    private double getTeleportRange(Player player) {
+        // Use the smaller of the client's render distance and the chunks sent by the server.
+        int clientChunks = Math.max(2, player.getClientViewDistance());
+        int serverChunks = player.getSendViewDistance();
+        if (serverChunks < 2) serverChunks = player.getWorld().getViewDistance();
+        if (serverChunks < 2) serverChunks = Bukkit.getViewDistance();
+
+        return Math.max(32.0, Math.min(clientChunks, serverChunks) * 16.0);
     }
 
     private Location findSafeSpot(Location anchor) {
@@ -241,9 +251,10 @@ public final class ShadowHarvesterAbilityListener implements Listener {
 
         state.returning = true;
         Location returnStart = state.display.getLocation().clone();
-        Vector side = new Vector(-state.direction.getZ(), 0.0, state.direction.getX());
-        if (side.lengthSquared() < 1.0E-6) side = new Vector(1.0, 0.0, 0.0);
-        else side.normalize();
+        Vector sideVector = new Vector(-state.direction.getZ(), 0.0, state.direction.getX());
+        final Vector side = sideVector.lengthSquared() < 1.0E-6
+                ? new Vector(1.0, 0.0, 0.0)
+                : sideVector.normalize();
 
         new BukkitRunnable() {
             private int returnTick;
