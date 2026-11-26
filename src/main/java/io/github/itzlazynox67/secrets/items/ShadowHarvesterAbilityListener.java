@@ -209,7 +209,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                     spawnThrowTrail(display.getLocation());
                     target.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_HIT, 1.0f, 0.8f);
                     target.getWorld().playSound(target.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 0.75f, 1.35f);
-                    pullPlayer(id, target);
+                    // The hit player is tethered to the mace while it flies back to the holder.
+                    startReturn(id, target);
                     cancel();
                     return;
                 }
@@ -242,6 +243,10 @@ public final class ShadowHarvesterAbilityListener implements Listener {
     }
 
     private void startReturn(UUID id) {
+        startReturn(id, null);
+    }
+
+    private void startReturn(UUID id, Player draggedPlayer) {
         ThrownWeapon state = thrownWeapons.get(id);
         if (state == null || state.returning) return;
 
@@ -253,6 +258,8 @@ public final class ShadowHarvesterAbilityListener implements Listener {
 
         state.returning = true;
         Location returnStart = state.display.getLocation().clone();
+        final int returnDuration = Math.max(14,
+                Math.min(32, (int) Math.ceil(returnStart.distance(owner.getLocation()) / 1.6)));
         Vector sideVector = new Vector(-state.direction.getZ(), 0.0, state.direction.getX());
         final Vector side = sideVector.lengthSquared() < 1.0E-6
                 ? new Vector(1.0, 0.0, 0.0)
@@ -278,7 +285,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 }
 
                 returnTick++;
-                double progress = Math.min(1.0, returnTick / 14.0);
+                double progress = Math.min(1.0, returnTick / (double) returnDuration);
 
                 Vector facing = holder.getLocation().getDirection().clone();
                 facing.setY(0.0);
@@ -295,7 +302,23 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 animateBoomerang(current.display, 40 + returnTick);
                 spawnThrowTrail(point);
 
-                if (progress >= 1.0) {
+                // Pull the struck player along behind the returning mace.
+                boolean playerStillBeingDragged = draggedPlayer != null && draggedPlayer.isOnline()
+                        && draggedPlayer.getWorld().equals(holder.getWorld());
+                if (playerStillBeingDragged) {
+                    Location dragPoint = point.clone().add(0.0, -0.35, 0.0);
+                    Vector toMace = dragPoint.toVector().subtract(draggedPlayer.getLocation().toVector());
+                    double distanceToMace = toMace.length();
+                    if (distanceToMace > 0.9) {
+                        double pullSpeed = Math.min(1.65, 0.45 + distanceToMace * 0.16);
+                        draggedPlayer.setVelocity(toMace.normalize().multiply(pullSpeed));
+                    }
+                    spawnThrowTrail(draggedPlayer.getLocation().add(0.0, 1.0, 0.0));
+                }
+
+                boolean playerCaughtUp = !playerStillBeingDragged
+                        || draggedPlayer.getLocation().distanceSquared(holder.getLocation()) <= 6.25;
+                if (progress >= 1.0 && (playerCaughtUp || returnTick >= returnDuration + 35)) {
                     finishThrow(id);
                     cancel();
                 }
@@ -307,40 +330,6 @@ public final class ShadowHarvesterAbilityListener implements Listener {
         location.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, location, 3,
                 0.08, 0.08, 0.08, 0.0,
                 new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 0.9f));
-    }
-
-    private void pullPlayer(UUID id, Player target) {
-        new BukkitRunnable() {
-            private int ticks;
-
-            @Override
-            public void run() {
-                ThrownWeapon state = thrownWeapons.get(id);
-                Player holder = state == null ? null : Bukkit.getPlayer(state.ownerId);
-                if (state == null) {
-                    cancel();
-                    return;
-                }
-                if (!target.isOnline() || holder == null || !holder.isOnline()
-                        || !target.getWorld().equals(holder.getWorld()) || ticks++ >= 30) {
-                    startReturn(id);
-                    cancel();
-                    return;
-                }
-
-                Vector pull = holder.getLocation().toVector().subtract(target.getLocation().toVector());
-                double distance = pull.length();
-                if (distance <= 2.0) {
-                    startReturn(id);
-                    cancel();
-                    return;
-                }
-                pull.normalize().multiply(Math.min(1.05, 0.35 + distance * 0.045));
-                pull.setY(Math.max(0.12, Math.min(0.55, pull.getY() + 0.18)));
-                target.setVelocity(pull);
-                spawnThrowTrail(target.getLocation().add(0, 1, 0));
-            }
-        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void spawnHarvesterBurst(Location center, int count) {
