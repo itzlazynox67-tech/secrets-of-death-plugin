@@ -343,6 +343,21 @@ public final class ShadowHarvesterAbilityListener implements Listener {
                 new Particle.DustTransition(Color.fromRGB(255, 0, 0), Color.BLACK, 1.0f));
     }
 
+    private boolean hasShadowHarvester(Player player) {
+        // Keep the passive effect active wherever the artifact is stored in the player's inventory.
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (isShadowHarvester(item)) return true;
+        }
+        if (isShadowHarvester(player.getInventory().getItemInOffHand())) return true;
+        for (ItemStack armor : player.getInventory().getArmorContents()) {
+            if (isShadowHarvester(armor)) return true;
+        }
+
+        // The weapon is temporarily removed from the inventory while its throw animation is active.
+        UUID playerId = player.getUniqueId();
+        return thrownWeapons.values().stream().anyMatch(state -> state.ownerId.equals(playerId));
+    }
+
     /*
      * The datapack draws the holder's signature red-to-black dust ring on
      * the ground every five ticks, only while grounded and not invisible.
@@ -350,7 +365,7 @@ public final class ShadowHarvesterAbilityListener implements Listener {
     private void startPassiveParticles() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
-                if (!isShadowHarvester(player.getInventory().getItemInMainHand())) continue;
+                if (!hasShadowHarvester(player)) continue;
                 if (player.isInvisible() || !player.isOnGround()) continue;
                 Location base = player.getLocation();
                 for (int i = 0; i < 32; i++) {
