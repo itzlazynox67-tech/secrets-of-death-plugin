@@ -510,6 +510,9 @@ public final class MasterKeyAbilityListener implements Listener {
     }
 
     private void loadState() {
+        for (String key : plugin.getConfig().getStringList("master-key.prison-owners")) {
+            try { prisonOwners.add(UUID.fromString(key)); } catch (IllegalArgumentException ignored) { }
+        }
         if (plugin.getConfig().getConfigurationSection("master-key.locked-items") != null) {
             for (String materialKey : plugin.getConfig().getConfigurationSection("master-key.locked-items").getKeys(false)) {
                 Material material = Material.matchMaterial(materialKey);
@@ -542,6 +545,7 @@ public final class MasterKeyAbilityListener implements Listener {
     }
 
     private void saveState() {
+        plugin.getConfig().set("master-key.prison-owners", prisonOwners.stream().map(UUID::toString).toList());
         plugin.getConfig().set("master-key.locked-items", null);
         for (Map.Entry<Material, Map<UUID, Long>> entry : lockedMaterials.entrySet()) {
             for (Map.Entry<UUID, Long> target : entry.getValue().entrySet()) {
