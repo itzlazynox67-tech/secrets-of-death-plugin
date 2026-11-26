@@ -38,6 +38,8 @@ public final class ArtifactRegistry {
         register("phoenix_wings", "Phoenix Wings", "modeling:phoenix_wings", "A named collectible from the Secrets collection.");
         register("silence", "Silence", "modeling:silence", "A Warden-themed artifact with sonic, debuff, summoning, and Rampage abilities.");
         register("shadow_harvester", "Shadow Harvester", "modeling:shadow_harvester", "A standalone shadow artifact with Shadow Teleport and Shadow Throw.");
+        register("midas", "Midas", "minecraft:golden_sword", "A golden artifact with Golden Touch, Golden Reversal, and Golden Eternity.");
+        register("midas_blessing", "Midas Blessing", "minecraft:totem_of_undying", "A protection token that grants immunity to Midas abilities only.");
         register("cycletation", "Cycletation", "modeling:cycle", "A two-page weather and time artifact book containing God's Will and the Forged Armor rewards.");
         register("godswill", "God's Will", "minecraft:trident", "A special trident reward from the Cycletation artifact; strikes nearby players with lightning while raining.");
         register("explosion_gift", "Explosion Protection Gift", "modeling:explosion_gift", "A collectible token reserved for the planned protection feature.");
@@ -74,6 +76,8 @@ public final class ArtifactRegistry {
             case "phoenix_wings" -> Material.ELYTRA;
             case "silence" -> Material.NETHERITE_AXE;
             case "shadow_harvester" -> Material.MACE;
+            case "midas" -> Material.GOLDEN_SWORD;
+            case "midas_blessing" -> Material.TOTEM_OF_UNDYING;
             case "godswill" -> Material.TRIDENT;
             case "cycletation" -> Material.WRITTEN_BOOK;
             case "death_helmet" -> Material.NETHERITE_HELMET;
@@ -95,6 +99,8 @@ public final class ArtifactRegistry {
             case "deaths_embrace" -> "&4&lDeath's &0&lEmbrace";
             case "silence" -> "&3&lS̷i̷l̷e̷n̷c̷e̷";
             case "shadow_harvester" -> "&5&lShadow Harvester";
+            case "midas" -> "&6&lMidas";
+            case "midas_blessing" -> "&e&lMidas Blessing";
             case "godswill" -> "&b&lGod's Will";
             case "cycletation" -> "&b&lCycletation";
             default -> "&c&o" + definition.displayName();
@@ -121,12 +127,31 @@ public final class ArtifactRegistry {
         String collectionLore = (definition.id().equals("silence") || definition.id().equals("cycletation"))
                 ? "&8Standalone artifact"
                 : definition.id().equals("godswill") ? "&8Cycletation reward" : "&7Secrets of Death and Destruction";
-        meta.setLore(java.util.List.of(
-                color(collectionLore),
-                color("&8Collectible item"),
-                color("&7" + definition.description()),
-                color("&8ID: " + definition.id())
-        ));
+        if (definition.id().equals("midas")) {
+            meta.setLore(java.util.List.of(
+                    color("&8Standalone artifact"),
+                    color("&6&lAbilities"),
+                    color("&eGolden Touch &7- Hits build Golden Slowness up to Slowness X."),
+                    color("&eGolden Reversal &7- Right-click to reflect melee attacks and projectiles for 5 seconds."),
+                    color("&eGolden Eternity &7- Shift + right-click to freeze nearby players for 4 seconds."),
+                    color("&8Reversal cooldown: 30s | Eternity cooldown: 90s"),
+                    color("&8ID: midas")
+            ));
+        } else if (definition.id().equals("midas_blessing")) {
+            meta.setLore(java.util.List.of(
+                    color("&8Midas protection token"),
+                    color("&7Grants immunity to Midas abilities only."),
+                    color("&7Keep this token in your inventory to remain protected."),
+                    color("&8ID: midas_blessing")
+            ));
+        } else {
+            meta.setLore(java.util.List.of(
+                    color(collectionLore),
+                    color("&8Collectible item"),
+                    color("&7" + definition.description()),
+                    color("&8ID: " + definition.id())
+            ));
+        }
         meta.getPersistentDataContainer().set(artifactIdKey, PersistentDataType.STRING, definition.id());
 
         // Only the book and Death's Embrace use custom resource-pack models.
