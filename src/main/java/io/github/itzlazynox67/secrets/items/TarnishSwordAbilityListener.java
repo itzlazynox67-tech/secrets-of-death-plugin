@@ -39,14 +39,14 @@ public final class TarnishSwordAbilityListener implements Listener {
                 long now = System.currentTimeMillis();
                 for (Player wielder : Bukkit.getOnlinePlayers()) {
                     if (!hasTarnishInInventory(wielder)) continue;
-                    wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1, true, false, true));
+                    wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1, true, false, true));
                     if (isStormEmpowered(wielder)) {
                         wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 3, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 2, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 1, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, 60, 1, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.CONDUIT_POWER, 60, 0, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 3, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 2, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 1, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, 100, 1, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.CONDUIT_POWER, 100, 0, true, false, true));
                         Location at = wielder.getLocation().add(0, 1, 0);
                         wielder.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, at, 4, .5, .7, .5, .02);
                         wielder.getWorld().spawnParticle(Particle.GUST, at, 2, .35, .45, .35, .02);
@@ -63,7 +63,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                 stunnedUntil.entrySet().removeIf(entry -> entry.getValue() <= now);
                 waterStrikeCooldowns.entrySet().removeIf(entry -> entry.getValue() <= now);
             }
-        }.runTaskTimer(plugin, 20L, 20L);
+        }.runTaskTimer(plugin, 1L, 5L);
     }
 
     private String id(ItemStack item) {
@@ -185,8 +185,11 @@ public final class TarnishSwordAbilityListener implements Listener {
             return;
         }
         int stunned = 0;
-        for (Entity entity : wielder.getNearbyEntities(10, 10, 10)) {
-            if (!(entity instanceof Player target) || protectedFromSummons(wielder, target)
+        Location wielderLocation = wielder.getLocation();
+        for (Player target : Bukkit.getOnlinePlayers()) {
+            if (target.equals(wielder) || !target.getWorld().equals(wielder.getWorld())
+                    || target.getLocation().distanceSquared(wielderLocation) > 100.0
+                    || protectedFromSummons(wielder, target)
                     || plugin.getProtectionManager().isProtected(target)) continue;
             stun(target);
             stunned++;
