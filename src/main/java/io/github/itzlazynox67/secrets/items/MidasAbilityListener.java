@@ -312,7 +312,6 @@ public final class MidasAbilityListener implements Listener {
                     world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.25f);
                     world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0),
                             180, CATACLYSM_RADIUS / 2, 1.2, CATACLYSM_RADIUS / 2, 0.06);
-                    Player owner = Bukkit.getPlayer(center.getWorld().getUID()) == null ? null : null;
                     // The surrounding Cataclysm activation already reports its hit count;
                     // this confirmation makes terrain conversion visible in the action log.
                     plugin.getLogger().fine("Golden Cataclysm converted " + changed + " blocks to temporary gold.");
