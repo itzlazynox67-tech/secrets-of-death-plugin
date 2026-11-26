@@ -220,12 +220,31 @@ public final class MasterKeyAbilityListener implements Listener {
         Player player = Bukkit.getPlayer(id);
         Location back = returnLocations.get(id);
         if (player != null && back != null) {
+            returnAt.remove(id);
             if (back.getWorld() != null) player.teleport(back);
             player.sendMessage(ChatColor.GREEN + "Your 10-minute Master Key exile has ended.");
         }
         returnLocations.remove(id);
         returnAt.remove(id);
         saveState();
+    }
+
+    @EventHandler
+    public void preventExileEscape(PlayerTeleportEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        if (!returnAt.containsKey(id) || prison == null || event.getTo() == null) return;
+        if (!event.getTo().getWorld().equals(prison)) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(ChatColor.DARK_PURPLE + "The Master Key prison holds you until the exile ends.");
+        }
+    }
+
+    @EventHandler
+    public void keepExiledOnRespawn(org.bukkit.event.player.PlayerRespawnEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        if (!returnAt.containsKey(id)) return;
+        World world = prisonWorld();
+        if (world != null) event.setRespawnLocation(new Location(world, 0.5, world.getMinHeight() + 7, 0.5));
     }
 
     @EventHandler
