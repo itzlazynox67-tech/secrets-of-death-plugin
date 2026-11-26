@@ -77,3 +77,10 @@ Administrative commands are operator-only. The old `/secrets` and standalone `/i
 ## Resource pack
 
 The resource pack is in `resource-pack/`. Its original assets are retained. `resource-pack/SECRETS_MODEL_MAP.json` lists the model IDs. Placeholder textures for newly added items can be replaced independently without changing the plugin code.
+
+## Master Key
+
+- Right-click: opens a paginated item picker. Selecting an item prevents its use server-wide for 1 hour. Item Lock has a 3-day cooldown.
+- Sneak + right-click: teleports the owner and all players within 100 blocks into a separate, expansive flat prison world for 10 minutes. The world has a bedrock bottom, deepslate foundation, and a flat deepslate-brick surface. Players are returned to their saved locations; offline players are returned when they rejoin after the timer ends.
+- Dimensional Exile cooldown: 30 minutes.
+
