@@ -43,7 +43,7 @@ public final class SilenceAbilityListener implements Listener {
                     for (Entity entity : world.getEntities()) {
                         if (entity instanceof Warden warden
                                 && warden.getTarget() instanceof Player target
-                                && hasSilence(target)) {
+                                && isSilenceProtected(target)) {
                             warden.setTarget(null);
                         }
                     }
@@ -73,6 +73,19 @@ public final class SilenceAbilityListener implements Listener {
         for (ItemStack item : player.getInventory().getContents()) {
             if (item != null && item.hasItemMeta()
                     && "silence".equals(item.getItemMeta().getPersistentDataContainer().get(artifactKey, PersistentDataType.STRING))) return true;
+        }
+        return false;
+    }
+
+    private boolean isSilenceProtected(Player target) {
+        if (hasSilence(target)) return true;
+        org.bukkit.scoreboard.Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        org.bukkit.scoreboard.Team targetTeam = board.getEntryTeam(target.getName());
+        if (targetTeam == null) return false;
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (online.equals(target) || !hasSilence(online)) continue;
+            org.bukkit.scoreboard.Team holderTeam = board.getEntryTeam(online.getName());
+            if (targetTeam.equals(holderTeam)) return true;
         }
         return false;
     }
@@ -592,7 +605,7 @@ public final class SilenceAbilityListener implements Listener {
     public void protectSilenceHoldersFromWardens(org.bukkit.event.entity.EntityTargetLivingEntityEvent event) {
         if (!(event.getEntity() instanceof Warden warden) || !(event.getTarget() instanceof Player target)) return;
         // Protect every Silence holder, not only the player who summoned a soldier.
-        if (hasSilence(target)) {
+        if (isSilenceProtected(target)) {
             event.setCancelled(true);
             warden.setTarget(null);
         }
@@ -602,7 +615,7 @@ public final class SilenceAbilityListener implements Listener {
     public void protectSilenceHoldersFromWardenDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof Warden
                 && event.getEntity() instanceof Player target
-                && hasSilence(target)) event.setCancelled(true);
+                && isSilenceProtected(target)) event.setCancelled(true);
     }
 
     @EventHandler
