@@ -160,6 +160,7 @@ public final class ArtifactRegistry {
                             org.bukkit.inventory.EquipmentSlotGroup.MAINHAND));
         }
         if (definition.id().equals("deaths_embrace")) {
+            meta.setUnbreakable(true);
             meta.displayName(deathEmbraceGradient());
         } else {
             meta.setDisplayName(color(styledName));
@@ -193,6 +194,8 @@ public final class ArtifactRegistry {
                     color("&8Golden food breaks Golden Eternity."),
                     color("&8ID: midas")
             ));
+        } else if (definition.id().equals("phoenix_wings")) {
+            meta.setUnbreakable(true);
         } else if (definition.id().equals("master_key")) {
             meta.setUnbreakable(true);
             meta.setLore(java.util.List.of(
