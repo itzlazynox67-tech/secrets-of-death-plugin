@@ -77,7 +77,7 @@ public final class ChampionBladeAbilityListener implements Listener {
             case "HT5" -> PotionEffectType.SPEED;
             case "LT4", "HT4" -> PotionEffectType.HASTE;
             case "LT3", "HT3" -> PotionEffectType.RESISTANCE;
-            case "LT2", "HT2" -> PotionEffectType.JUMP_BOOST;
+            case "LT2", "HT2" -> PotionEffectType.ABSORPTION;
             case "LT1", "HT1" -> PotionEffectType.REGENERATION;
             default -> PotionEffectType.SPEED;
         };
