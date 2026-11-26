@@ -548,7 +548,9 @@ public final class SilenceAbilityListener implements Listener {
     }
 
     private void endRampage(Player player) {
-        rampageEnds.remove(player.getUniqueId());
+        if (rampageEnds.remove(player.getUniqueId()) != null) {
+            rampageCooldownEnds.put(player.getUniqueId(), System.currentTimeMillis() + 600_000L);
+        }
         removeBlueGlow(player);
         player.sendMessage(ChatColor.DARK_RED + "Silence: Rampage has ended.");
     }
