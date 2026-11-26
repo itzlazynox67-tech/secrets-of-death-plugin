@@ -187,7 +187,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
                 || id.equals("death_leggings") || id.equals("death_boots");
         long now = System.currentTimeMillis();
         if (secretsArmor) {
-            long readyAt = secretsArmorCooldowns.getOrDefault(player.getUniqueId(), 0L);
+            long readyAt = secretsArmorCooldowns.getOrDefault(player.getUniqueId(), java.util.Map.of()).getOrDefault(id, 0L);
             if (now < readyAt) {
                 long minutes = Math.max(1, (readyAt - now + 59999L) / 60000L);
                 player.sendMessage(msg("&cSecrets armor cooldown: " + minutes + " minute(s) remaining."));
@@ -250,12 +250,12 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
             }
         }
         giveOrDrop(player, item);
-        if (secretsArmor) secretsArmorCooldowns.put(player.getUniqueId(), now + 20 * 60 * 1000L);
+        if (secretsArmor) secretsArmorCooldowns.computeIfAbsent(player.getUniqueId(), ignored -> new java.util.HashMap<>())\n                .put(id, now + 20 * 60 * 1000L);
         playClaimEffects(player);
         player.sendMessage(msg("&aClaimed &f" + id.replace('_', ' ') + "&a."));
     }
 
-    private final java.util.Map<java.util.UUID, Long> secretsArmorCooldowns = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, java.util.Map<String, Long>> secretsArmorCooldowns = new java.util.HashMap<>();
 
     private final java.util.Map<java.util.UUID, Long> cycletationCooldowns = new java.util.HashMap<>();
     private final java.util.Map<java.util.UUID, Long> forgedArmorCooldowns = new java.util.HashMap<>();
