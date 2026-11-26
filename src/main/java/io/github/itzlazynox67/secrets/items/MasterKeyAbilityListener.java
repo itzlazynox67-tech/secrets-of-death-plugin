@@ -39,6 +39,8 @@ public final class MasterKeyAbilityListener implements Listener {
     private final Map<UUID, Long> returnAt = new HashMap<>();
     private World prison;
     private final Set<UUID> waitingForItemSearch = new HashSet<>();
+    private final Set<UUID> prisonOwners = new HashSet<>();
+    private final Set<UUID> darknessAffected = new HashSet<>();
 
     public MasterKeyAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
@@ -53,6 +55,7 @@ public final class MasterKeyAbilityListener implements Listener {
                     if (returnAt.get(id) <= now && Bukkit.getPlayer(id) != null) returnPlayer(id);
                 }
                 updateCountdownActionBars();
+                updatePrisonDarkness();
             }
         }.runTaskTimer(plugin, 20L, 20L);
     }
@@ -280,6 +283,7 @@ public final class MasterKeyAbilityListener implements Listener {
             return;
         }
         Location destination = safePrisonSpawn(world);
+        prisonOwners.add(owner.getUniqueId());
         List<Player> targets = new ArrayList<>();
         targets.add(owner);
         for (Player candidate : owner.getWorld().getPlayers()) {
@@ -349,6 +353,7 @@ public final class MasterKeyAbilityListener implements Listener {
     }
 
     private void returnPlayer(UUID id) {
+        prisonOwners.remove(id);
         Player player = Bukkit.getPlayer(id);
         Location back = returnLocations.get(id);
         if (player != null && back != null) {
@@ -358,6 +363,8 @@ public final class MasterKeyAbilityListener implements Listener {
         }
         returnLocations.remove(id);
         returnAt.remove(id);
+        Player online = Bukkit.getPlayer(id);
+        if (online != null && darknessAffected.remove(id)) online.removePotionEffect(PotionEffectType.DARKNESS);
         saveState();
     }
 
@@ -433,6 +440,19 @@ public final class MasterKeyAbilityListener implements Listener {
     @EventHandler
     public void blockLockedSwap(PlayerSwapHandItemsEvent event) {
         if (isLocked(event.getPlayer(), event.getMainHandItem()) || isLocked(event.getPlayer(), event.getOffHandItem())) event.setCancelled(true);
+    }
+
+    private void updatePrisonDarkness() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID id = player.getUniqueId();
+            boolean insidePrison = player.getWorld().getName().equals(WORLD_NAME);
+            if (insidePrison && !prisonOwners.contains(id)) {
+                player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.DARKNESS, 40, 0, true, false, false));
+                darknessAffected.add(id);
+            } else if (darknessAffected.remove(id)) {
+                player.removePotionEffect(PotionEffectType.DARKNESS);
+            }
+        }
     }
 
     private void updateCountdownActionBars() {
