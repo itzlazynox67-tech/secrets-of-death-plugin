@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class MidasAbilityListener implements Listener {
     private static final long REVERSAL_DURATION = 5_000L;
@@ -105,6 +106,42 @@ public final class MidasAbilityListener implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
+
+        // Gold Aura: a Midas holder standing near gold or raw gold is empowered.
+        new BukkitRunnable() {
+            @Override public void run() {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (!hasMidas(player) || !nearGold(player.getLocation())) continue;
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, false, true));
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SPEED, 60, 1, true, false, true));
+                    player.getWorld().spawnParticle(Particle.WAX_ON, player.getLocation().add(0, 1, 0), 5, 0.3, 0.45, 0.3, 0.01);
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 20L);
+    }
+
+    private boolean hasMidas(Player player) {
+        for (ItemStack item : player.getInventory().getContents()) if (isMidas(item)) return true;
+        return isMidas(player.getInventory().getItemInOffHand());
+    }
+
+    private boolean nearGold(Location center) {
+        World world = center.getWorld();
+        int cx = center.getBlockX(), cy = center.getBlockY(), cz = center.getBlockZ();
+        for (int x = cx - 10; x <= cx + 10; x++) {
+            for (int y = Math.max(world.getMinHeight(), cy - 10); y <= Math.min(world.getMaxHeight() - 1, cy + 10); y++) {
+                for (int z = cz - 10; z <= cz + 10; z++) {
+                    double dx = x + 0.5 - center.getX();
+                    double dy = y + 0.5 - center.getY();
+                    double dz = z + 0.5 - center.getZ();
+                    if (dx * dx + dy * dy + dz * dz > 100) continue;
+                    Material type = world.getBlockAt(x, y, z).getType();
+                    if (type == Material.GOLD_BLOCK || type == Material.RAW_GOLD_BLOCK) return true;
+                }
+            }
+        }
+        return false;
     }
 
     private LivingEntity livingEntity(UUID id) {
@@ -241,7 +278,10 @@ public final class MidasAbilityListener implements Listener {
                     } else {
                         existing.expiresAt = expiresAt;
                     }
-                    if (block.getType() != Material.GOLD_BLOCK) block.setType(Material.GOLD_BLOCK, false);
+                    // Cataclysm turns the terrain into a mix of solid gold and raw gold blocks.
+                    Material goldType = ThreadLocalRandom.current().nextInt(4) == 0
+                            ? Material.RAW_GOLD_BLOCK : Material.GOLD_BLOCK;
+                    if (block.getType() != goldType) block.setType(goldType, false);
                 }
             }
         }
