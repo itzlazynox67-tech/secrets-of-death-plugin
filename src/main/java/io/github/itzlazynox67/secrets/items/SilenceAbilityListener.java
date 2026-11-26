@@ -4,6 +4,8 @@ import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.block.BlockState;
+import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -193,7 +195,7 @@ public final class SilenceAbilityListener implements Listener {
                         for (Entity entity : player.getWorld().getNearbyEntities(point, 2.5, 2.5, 2.5)) {
                             if (!(entity instanceof LivingEntity target) || target.equals(player) || !hit.add(target.getUniqueId())) continue;
                             if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                            target.damage(40.0, player);
+                            piercingDamage(target, player, 40.0);
                         }
                         step += 2;
                     }
@@ -387,7 +389,7 @@ public final class SilenceAbilityListener implements Listener {
                     for (Entity entity : player.getNearbyEntities(100, 100, 100)) {
                         if (!(entity instanceof LivingEntity target) || target.equals(player) || !target.isOnGround()) continue;
                         if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                        target.damage(20.0, player);
+                        piercingDamage(target, player, 20.0);
                     }
                     groundSlamming.remove(player.getUniqueId());
                     cancel();
@@ -478,7 +480,7 @@ public final class SilenceAbilityListener implements Listener {
         for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
             if (entity instanceof LivingEntity target && !target.equals(player)) {
                 if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                target.damage(10.0, player);
+                piercingDamage(target, player, 10.0);
             }
         }
         player.sendMessage(ChatColor.DARK_AQUA + "Silence: Rampage destruction! Cleared " + broken + " blocks.");
@@ -533,7 +535,7 @@ public final class SilenceAbilityListener implements Listener {
                     for (Entity entity : player.getNearbyEntities(150, 100, 150)) {
                         if (!(entity instanceof LivingEntity target) || target.equals(player)) continue;
                         if (target instanceof Player victim && plugin.getProtectionManager().isProtected(victim)) continue;
-                        target.damage(40.0, player);
+                        piercingDamage(target, player, 40.0);
                     }
                     groundSlamming.remove(player.getUniqueId());
                     cancel();
@@ -595,6 +597,15 @@ public final class SilenceAbilityListener implements Listener {
             }
         }
         player.sendMessage(ChatColor.DARK_RED + "Silence: Rampage has ended.");
+    }
+
+    /** Silence damage uses the vanilla sonic-boom damage type, which bypasses armor and shields. */
+    private void piercingDamage(LivingEntity target, Player source, double amount) {
+        DamageSource damageSource = DamageSource.builder(DamageType.SONIC_BOOM)
+                .withCausingEntity(source)
+                .withDirectEntity(source)
+                .build();
+        target.damage(amount, damageSource);
     }
 
     private void burst(Location location, int count) {
