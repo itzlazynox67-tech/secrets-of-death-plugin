@@ -123,12 +123,11 @@ public final class TarnishSwordAbilityListener implements Listener {
     private void strikeComboArea(Player wielder, LivingEntity target) {
         World world = target.getWorld();
         Location center = target.getLocation();
-        if (target instanceof Player targetPlayer && !protectedFromSummons(wielder, targetPlayer)) {
-            targetPlayer.damage(20.0);
-        } else if (!(target instanceof Player)) {
+        boolean targetIsTeammate = target instanceof Player targetPlayer && protectedFromSummons(wielder, targetPlayer);
+        if (!targetIsTeammate) {
             target.damage(20.0);
+            strike(world, center);
         }
-        strike(world, center);
         for (Entity entity : world.getNearbyEntities(center, 10, 10, 10)) {
             if (!(entity instanceof Player nearby) || nearby.equals(wielder) || nearby.equals(target)) continue;
             if (plugin.getProtectionManager().isProtected(nearby) || protectedFromSummons(wielder, nearby)) continue;
