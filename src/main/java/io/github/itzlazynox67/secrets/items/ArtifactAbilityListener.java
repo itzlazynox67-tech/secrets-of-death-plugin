@@ -412,23 +412,23 @@ public final class ArtifactAbilityListener implements Listener {
             case "death_helmet" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, 4, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.RESPIRATION, 3, true);
-                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 10, true);
             }
             case "death_chestplate" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, 4, true);
-                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 10, true);
             }
             case "death_leggings" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, 4, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.SWIFT_SNEAK, 3, true);
-                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 10, true);
             }
             case "death_boots" -> {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, 4, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.DEPTH_STRIDER, 3, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.FEATHER_FALLING, 255, true);
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.SOUL_SPEED, 3, true);
-                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 5, true);
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 10, true);
             }
             default -> { }
         }
