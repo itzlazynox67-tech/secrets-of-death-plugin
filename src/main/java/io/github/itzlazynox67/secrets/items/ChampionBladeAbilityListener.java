@@ -10,6 +10,15 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -27,6 +36,8 @@ public final class ChampionBladeAbilityListener implements Listener {
     private final Map<UUID, UUID> owners = new HashMap<>();
     private final Map<UUID, String> tiers = new HashMap<>();
     private final Set<UUID> bannedPlayers = new HashSet<>();
+    private final Map<UUID, UUID> banOwners = new HashMap<>();
+    private static final String PUNISHMENT_WORLD = "champions_punishment";
     private final Set<UUID> pendingInvites = new HashSet<>();
     private final Set<UUID> pendingManagement = new HashSet<>();
     private final Map<UUID, UUID> inviteTargets = new HashMap<>();
@@ -42,7 +53,7 @@ public final class ChampionBladeAbilityListener implements Listener {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     UUID id=p.getUniqueId();
                     if (bannedPlayers.contains(id)) {
-                        if (p.getGameMode() != GameMode.SPECTATOR) p.setGameMode(GameMode.SPECTATOR);
+                        enforceSpectatorBan(p);
                         continue;
                     }
                     if (hasBlade(p)) {
@@ -121,6 +132,7 @@ public final class ChampionBladeAbilityListener implements Listener {
             plugin.getConfig().set("champions-blade.members."+member+".tier", tiers.getOrDefault(member,"LT5"));
         });
         plugin.getConfig().set("champions-blade.banned", bannedPlayers.stream().map(UUID::toString).toList());
+        for (UUID banned : new HashSet<>(banOwners.keySet())) plugin.getConfig().set("champions-blade.ban-owners."+banned, banOwners.get(banned).toString());
         plugin.saveConfig();
     }
     private void loadData() {
@@ -134,11 +146,43 @@ public final class ChampionBladeAbilityListener implements Listener {
         for (String raw : plugin.getConfig().getStringList("champions-blade.banned")) {
             try { bannedPlayers.add(UUID.fromString(raw)); } catch (IllegalArgumentException ignored) {}
         }
+        var banSection = plugin.getConfig().getConfigurationSection("champions-blade.ban-owners");
+        if (banSection != null) for (String raw : banSection.getKeys(false)) try {
+            banOwners.put(UUID.fromString(raw), UUID.fromString(banSection.getString(raw)));
+        } catch (Exception ignored) {}
+    }
+
+    private World punishmentWorld() {
+        World world = Bukkit.getWorld(PUNISHMENT_WORLD);
+        if (world == null) {
+            world = new WorldCreator(PUNISHMENT_WORLD).environment(World.Environment.NORMAL).type(WorldType.FLAT).generateStructures(false).createWorld();
+            if (world != null) {
+                world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+                world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+                world.setTime( noonTime() );
+                world.setStorm(false);
+                world.setSpawnLocation(0, 80, 0);
+                world.getBlockAt(0, 78, 0).setType(Material.BEDROCK);
+                world.getBlockAt(0, 79, 0).setType(Material.BARRIER);
+            }
+        }
+        return world;
+    }
+
+    private long noonTime() { return 6000L; }
+
+    private Location punishmentSpawn() {
+        World world = punishmentWorld();
+        return world == null ? null : new Location(world, 0.5, 80, 0.5);
     }
 
     private void enforceSpectatorBan(Player player) {
         if (!bannedPlayers.contains(player.getUniqueId())) return;
         player.setGameMode(GameMode.SPECTATOR);
+        Location spawn = punishmentSpawn();
+        if (spawn != null && (player.getWorld() != spawn.getWorld() || player.getLocation().distanceSquared(spawn) > 576)) player.teleport(spawn);
+        player.closeInventory();
+        player.setInvulnerable(true);
         player.sendMessage(ChatColor.GOLD + "You have received justice.");
     }
 
@@ -151,6 +195,7 @@ public final class ChampionBladeAbilityListener implements Listener {
 
     @EventHandler
     public void onUse(PlayerInteractEvent e) {
+        if (bannedPlayers.contains(e.getPlayer().getUniqueId())) { e.setCancelled(true); return; }
         if(e.getHand()!=EquipmentSlot.HAND || !"champions_blade".equals(id(e.getItem()))) return;
         if(e.getAction()!=Action.RIGHT_CLICK_AIR && e.getAction()!=Action.RIGHT_CLICK_BLOCK) return;
         e.setCancelled(true);
@@ -196,6 +241,23 @@ public final class ChampionBladeAbilityListener implements Listener {
             meta.getPersistentDataContainer().set(new NamespacedKey(plugin,"champion_member"),PersistentDataType.STRING,member.toString());
             item.setItemMeta(meta); if(slot<45) inv.setItem(slot++,item);
         }
+        inv.setItem(49, button(Material.BARRIER, ChatColor.RED+"Banned Players", "banned-list"));
+        owner.openInventory(inv);
+    }
+    private void openBannedMenu(Player owner) {
+        Inventory inv = Bukkit.createInventory(null, 54, ChatColor.DARK_RED+"Cause Bans - Revoke");
+        int slot = 0;
+        for (UUID banned : new HashSet<>(bannedPlayers)) {
+            if (!owner.getUniqueId().equals(banOwners.get(banned))) continue;
+            OfflinePlayer op = Bukkit.getOfflinePlayer(banned);
+            ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+            ItemMeta meta = head.getItemMeta();
+            meta.setDisplayName(ChatColor.RED+Objects.toString(op.getName(), "Unknown"));
+            meta.setLore(List.of(ChatColor.GRAY+"Click to revoke this ban"));
+            meta.getPersistentDataContainer().set(new NamespacedKey(plugin,"champion_revoke"), PersistentDataType.STRING, banned.toString());
+            head.setItemMeta(meta);
+            if (slot < 54) inv.setItem(slot++, head);
+        }
         owner.openInventory(inv);
     }
     private void openTierMenu(Player owner, UUID member) {
@@ -206,10 +268,28 @@ public final class ChampionBladeAbilityListener implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         String title=e.getView().getTitle();
-        if(!title.equals(ChatColor.GOLD+"Join the Cause?") && !title.equals(ChatColor.DARK_AQUA+"Champion's Cause") && !title.equals(ChatColor.DARK_PURPLE+"Set Cause Tier")) return;
+        if(!title.equals(ChatColor.GOLD+"Join the Cause?") && !title.equals(ChatColor.DARK_AQUA+"Champion's Cause") && !title.equals(ChatColor.DARK_PURPLE+"Set Cause Tier") && !title.equals(ChatColor.DARK_RED+"Cause Bans - Revoke")) return;
         e.setCancelled(true);
         if(!(e.getWhoClicked() instanceof Player p) || e.getClickedInventory()!=e.getView().getTopInventory()) return;
         ItemStack item=e.getCurrentItem(); if(item==null || !item.hasItemMeta()) return;
+        if (title.equals(ChatColor.DARK_RED+"Cause Bans - Revoke")) {
+            String rawBan = item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin,"champion_revoke"), PersistentDataType.STRING);
+            if (rawBan == null) return;
+            UUID banned = UUID.fromString(rawBan);
+            if (!p.getUniqueId().equals(banOwners.get(banned))) return;
+            bannedPlayers.remove(banned); banOwners.remove(banned); saveData();
+            Player released = Bukkit.getPlayer(banned);
+            if (released != null) {
+                released.setInvulnerable(false);
+                released.setGameMode(GameMode.SURVIVAL);
+                World main = Bukkit.getWorlds().get(0);
+                released.teleport(main.getSpawnLocation());
+                released.sendMessage(ChatColor.GREEN+"Your sentence has been revoked.");
+            }
+            p.sendMessage(ChatColor.GREEN+"Ban revoked.");
+            openBannedMenu(p);
+            return;
+        }
         String action=item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin,"champion_action"),PersistentDataType.STRING);
         if(title.equals(ChatColor.GOLD+"Join the Cause?")) {
             UUID owner=inviteTargets.remove(p.getUniqueId());
@@ -222,6 +302,7 @@ public final class ChampionBladeAbilityListener implements Listener {
             return;
         }
         if(title.equals(ChatColor.DARK_AQUA+"Champion's Cause")) {
+            if ("banned-list".equals(action)) { openBannedMenu(p); return; }
             String raw=item.getItemMeta().getPersistentDataContainer().get(new NamespacedKey(plugin,"champion_member"),PersistentDataType.STRING);
             if(raw==null) return;
             UUID member=UUID.fromString(raw);
@@ -229,7 +310,7 @@ public final class ChampionBladeAbilityListener implements Listener {
             if(e.isShiftClick() || e.isRightClick()) {
                 boolean ban = e.isShiftClick();
                 owners.remove(member); tiers.remove(member);
-                if (ban) bannedPlayers.add(member);
+                if (ban) { bannedPlayers.add(member); banOwners.put(member, p.getUniqueId()); }
                 saveData();
                 if(target.isOnline()) {
                     Player online=(Player)target;
@@ -253,5 +334,17 @@ public final class ChampionBladeAbilityListener implements Listener {
             openManagement(p);
         }
     }
+    @EventHandler public void onMove(PlayerMoveEvent e) {
+        if (!bannedPlayers.contains(e.getPlayer().getUniqueId())) return;
+        Location spawn = punishmentSpawn();
+        if (spawn != null && (e.getTo().getWorld() != spawn.getWorld() || e.getTo().distanceSquared(spawn) > 576)) e.getPlayer().teleport(spawn);
+    }
+    @EventHandler public void onBreak(BlockBreakEvent e) { if (bannedPlayers.contains(e.getPlayer().getUniqueId())) e.setCancelled(true); }
+    @EventHandler public void onPlace(BlockPlaceEvent e) { if (bannedPlayers.contains(e.getPlayer().getUniqueId())) e.setCancelled(true); }
+    @EventHandler public void onDrop(PlayerDropItemEvent e) { if (bannedPlayers.contains(e.getPlayer().getUniqueId())) e.setCancelled(true); }
+    @EventHandler public void onSwap(PlayerSwapHandItemsEvent e) { if (bannedPlayers.contains(e.getPlayer().getUniqueId())) e.setCancelled(true); }
+    @EventHandler public void onPickup(EntityPickupItemEvent e) { if (e.getEntity() instanceof Player p && bannedPlayers.contains(p.getUniqueId())) e.setCancelled(true); }
+    @EventHandler public void onDrag(InventoryDragEvent e) { if (e.getWhoClicked() instanceof Player p && bannedPlayers.contains(p.getUniqueId())) e.setCancelled(true); }
+    @EventHandler public void onCommand(PlayerCommandPreprocessEvent e) { if (bannedPlayers.contains(e.getPlayer().getUniqueId())) e.setCancelled(true); }
     @EventHandler public void onQuit(PlayerQuitEvent e) { pendingInvites.remove(e.getPlayer().getUniqueId()); inviteTargets.remove(e.getPlayer().getUniqueId()); }
 }
