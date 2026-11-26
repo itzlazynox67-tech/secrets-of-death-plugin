@@ -68,8 +68,13 @@ public final class MasterKeyAbilityListener implements Listener {
         Player player = event.getPlayer();
         if (!isMasterKey(event.getItem())) return;
         event.setCancelled(true);
-        if (player.isSneaking()) exile(player);
-        else openItemMenu(player, 0);
+        if (player.isSneaking()) {
+            if (prison != null && player.getWorld().equals(prison) && returnAt.containsKey(player.getUniqueId())) {
+                releaseAllExiled(player);
+            } else {
+                exile(player);
+            }
+        } else openItemMenu(player, 0);
     }
 
     private void openItemMenu(Player player, int page) {
@@ -230,7 +235,7 @@ public final class MasterKeyAbilityListener implements Listener {
             owner.sendMessage(ChatColor.RED + "The prison dimension could not be loaded. Check the server log.");
             return;
         }
-        Location destination = new Location(world, 0.5, world.getMinHeight() + 7, 0.5);
+        Location destination = safePrisonSpawn(world);
         List<Player> targets = new ArrayList<>();
         targets.add(owner);
         for (Player candidate : owner.getWorld().getPlayers()) {
@@ -241,7 +246,9 @@ public final class MasterKeyAbilityListener implements Listener {
         for (Player target : targets) {
             returnLocations.put(target.getUniqueId(), target.getLocation().clone());
             returnAt.put(target.getUniqueId(), now + 10L * 60 * 1000);
-            target.teleport(destination.clone().add(targets.indexOf(target) * 2.0, 0, 0));
+            Location safeDestination = safePrisonSpawn(world);
+            safeDestination.add(targets.indexOf(target) * 2.0, 0, 0);
+            target.teleport(safeDestination);
             target.sendMessage(ChatColor.DARK_PURPLE + "The Master Key has exiled you to its prison dimension for 10 minutes.");
         }
         exileCooldowns.put(owner.getUniqueId(), now + EXILE_COOLDOWN);
@@ -265,9 +272,36 @@ public final class MasterKeyAbilityListener implements Listener {
             prison.setStorm(false);
             prison.setThundering(false);
             prison.setTime(18000L);
+            safePrisonSpawn(prison);
             prison.setSpawnLocation(0, prison.getMinHeight() + 6, 0);
         }
         return prison;
+    }
+
+    private Location safePrisonSpawn(World world) {
+        int x = 0;
+        int z = 0;
+        int floorY = world.getMinHeight() + 5;
+        // The prison generator creates a solid deepslate-brick floor at this level.
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                world.getBlockAt(x + dx, floorY, z + dz).setType(Material.DEEPSLATE_BRICKS, false);
+                world.getBlockAt(x + dx, floorY + 1, z + dz).setType(Material.AIR, false);
+                world.getBlockAt(x + dx, floorY + 2, z + dz).setType(Material.AIR, false);
+            }
+        }
+        return new Location(world, 0.5, floorY + 1.0, 0.5);
+    }
+
+    private void releaseAllExiled(Player activator) {
+        List<UUID> exiled = new ArrayList<>(returnAt.keySet());
+        if (exiled.isEmpty()) {
+            activator.sendMessage(ChatColor.GRAY + "There are no exiled players to release.");
+            return;
+        }
+        for (UUID id : exiled) returnPlayer(id);
+        activator.getWorld().playSound(activator.getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 1.2f, 0.7f);
+        activator.sendMessage(ChatColor.GREEN + "You have dismissed the prison. All exiled players have been returned.");
     }
 
     private void returnPlayer(UUID id) {
@@ -298,7 +332,7 @@ public final class MasterKeyAbilityListener implements Listener {
         UUID id = event.getPlayer().getUniqueId();
         if (!returnAt.containsKey(id)) return;
         World world = prisonWorld();
-        if (world != null) event.setRespawnLocation(new Location(world, 0.5, world.getMinHeight() + 7, 0.5));
+        if (world != null) event.setRespawnLocation(safePrisonSpawn(world));
     }
 
     @EventHandler
@@ -311,7 +345,7 @@ public final class MasterKeyAbilityListener implements Listener {
             long delay = Math.max(1L, returnAt.get(id) - System.currentTimeMillis());
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (returnAt.containsKey(id) && returnAt.get(id) <= System.currentTimeMillis()) returnPlayer(id);
-                else if (returnLocations.containsKey(id)) event.getPlayer().teleport(new Location(prisonWorld(), 0.5, prisonWorld().getMinHeight() + 7, 0.5));
+                else if (returnLocations.containsKey(id)) event.getPlayer().teleport(safePrisonSpawn(prisonWorld()));
             }, 1L);
         }
     }
