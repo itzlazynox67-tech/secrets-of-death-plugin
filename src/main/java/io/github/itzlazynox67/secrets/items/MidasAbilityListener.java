@@ -260,61 +260,72 @@ public final class MidasAbilityListener implements Listener {
 
     private void turnBlocksToTemporaryGold(World world, Location center) {
         long expiresAt = System.currentTimeMillis() + 60_000L;
-        int radius = (int) Math.ceil(CATACLYSM_RADIUS);
+        int radius = 30; // Match Silence's 30-block spherical domain.
         int centerX = center.getBlockX();
+        int centerY = center.getBlockY();
         int centerZ = center.getBlockZ();
-        int changed = 0;
 
-        // Convert the visible surface immediately. This avoids a delayed task
-        // and does not depend on the player's Y coordinate.
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                if (dx * dx + dz * dz > radius * radius) continue;
+        // Golden Cataclysm uses the same full-volume terrain conversion as
+        // Silence's Domain, replacing every non-air, non-tile block in a
+        // 30-block sphere with gold. Work in batches to avoid freezing the server.
+        new BukkitRunnable() {
+            int cursor = 0;
+            int changed = 0;
+            final int diameter = radius * 2 + 1;
+            final int total = diameter * diameter * diameter;
 
-                int x = centerX + dx;
-                int z = centerZ + dz;
-                if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
+            @Override
+            public void run() {
+                int processed = 0;
+                while (cursor < total && processed < 2000) {
+                    int index = cursor++;
+                    processed++;
 
-                org.bukkit.block.Block ground = world.getHighestBlockAt(x, z);
-                while (ground.getY() > world.getMinHeight()
-                        && (!ground.getType().isSolid()
-                        || ground.getState() instanceof org.bukkit.block.TileState)) {
-                    ground = ground.getRelative(0, -1, 0);
+                    int dx = index / (diameter * diameter) - radius;
+                    int dy = (index / diameter) % diameter - radius;
+                    int dz = index % diameter - radius;
+                    if (dx * dx + dy * dy + dz * dz > radius * radius) continue;
+
+                    int x = centerX + dx;
+                    int y = centerY + dy;
+                    int z = centerZ + dz;
+                    if (y < world.getMinHeight() || y >= world.getMaxHeight()) continue;
+                    if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
+
+                    org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                    if (block.getType().isAir()
+                            || block.getState() instanceof org.bukkit.block.TileState) continue;
+
+                    BlockPosition position = BlockPosition.of(block);
+                    TemporaryGold existing = temporaryGoldBlocks.get(position);
+                    if (existing == null) {
+                        temporaryGoldBlocks.put(position, new TemporaryGold(block.getState(), expiresAt));
+                    } else {
+                        existing.expiresAt = expiresAt;
+                    }
+
+                    if (block.getType() != Material.GOLD_BLOCK) {
+                        block.setType(Material.GOLD_BLOCK, false);
+                        changed++;
+                    }
                 }
 
-                Material originalType = ground.getType();
-                if (!originalType.isSolid() || originalType == Material.BEDROCK
-                        || originalType == Material.GOLD_BLOCK) continue;
-
-                BlockPosition position = BlockPosition.of(ground);
-                TemporaryGold existing = temporaryGoldBlocks.get(position);
-                if (existing == null) {
-                    temporaryGoldBlocks.put(position, new TemporaryGold(ground.getState(), expiresAt));
-                } else {
-                    existing.expiresAt = expiresAt;
+                if (cursor >= total) {
+                    cancel();
+                    world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.25f);
+                    world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0),
+                            260, radius / 2.0, radius / 2.0, radius / 2.0, 0.06);
+                    for (Player nearby : world.getPlayers()) {
+                        if (nearby.getLocation().distanceSquared(center) <= 40 * 40) {
+                            nearby.sendMessage(ChatColor.GOLD + "Golden Cataclysm transformed "
+                                    + changed + " blocks into gold for 60 seconds!");
+                        }
+                    }
+                    plugin.getLogger().info("Golden Cataclysm converted " + changed
+                            + " blocks in its 30-block spherical domain.");
                 }
-
-                ground.setType(Material.GOLD_BLOCK, false);
-                changed++;
             }
-        }
-
-        world.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, 1.25f);
-        world.spawnParticle(Particle.WAX_ON, center.clone().add(0, 1, 0),
-                180, CATACLYSM_RADIUS / 2, 1.2, CATACLYSM_RADIUS / 2, 0.06);
-        playerMessage(center, changed);
-        plugin.getLogger().info("Golden Cataclysm converted " + changed
-                + " surface blocks to temporary gold at " + center.getBlockX() + ", "
-                + center.getBlockY() + ", " + center.getBlockZ() + ".");
-    }
-
-    private void playerMessage(Location center, int changed) {
-        for (Player player : center.getWorld().getPlayers()) {
-            if (player.getLocation().distanceSquared(center) <= 32 * 32) {
-                player.sendMessage(ChatColor.GOLD + "Golden Cataclysm changed "
-                        + changed + " ground blocks into gold for 60 seconds.");
-            }
-        }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private boolean isTemporaryGold(org.bukkit.block.Block block) {
