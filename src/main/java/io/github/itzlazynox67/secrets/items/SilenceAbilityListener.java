@@ -25,6 +25,7 @@ public final class SilenceAbilityListener implements Listener {
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> rampageEnds = new HashMap<>();
     private final Map<UUID, Long> rampageCooldownEnds = new HashMap<>();
+    private final Map<UUID, Double> previousMaxHealth = new HashMap<>();
     private final Map<UUID, String> previousTeams = new HashMap<>();
     private final Map<UUID, String> glowTeams = new HashMap<>();
     private final Set<UUID> groundSlamming = new HashSet<>();
@@ -435,6 +436,12 @@ public final class SilenceAbilityListener implements Listener {
         }
         rampageCooldownEnds.put(player.getUniqueId(), now + 900_000L);
         applyBlueGlow(player);
+        var healthAttribute = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (healthAttribute != null) {
+            previousMaxHealth.putIfAbsent(player.getUniqueId(), healthAttribute.getBaseValue());
+            healthAttribute.setBaseValue(80.0); // 40 hearts during Rampage.
+            player.setHealth(80.0);
+        }
         player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 320, 0, true, false, true));
         rampageEnds.put(player.getUniqueId(), System.currentTimeMillis() + 300_000L);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_WARDEN_ROAR, 1.5f, 0.7f);
@@ -579,6 +586,14 @@ public final class SilenceAbilityListener implements Listener {
             rampageCooldownEnds.put(player.getUniqueId(), System.currentTimeMillis() + 600_000L);
         }
         removeBlueGlow(player);
+        Double oldMaxHealth = previousMaxHealth.remove(player.getUniqueId());
+        if (oldMaxHealth != null) {
+            var healthAttribute = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            if (healthAttribute != null) {
+                healthAttribute.setBaseValue(oldMaxHealth);
+                if (player.getHealth() > oldMaxHealth) player.setHealth(oldMaxHealth);
+            }
+        }
         player.sendMessage(ChatColor.DARK_RED + "Silence: Rampage has ended.");
     }
 
