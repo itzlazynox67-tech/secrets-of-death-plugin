@@ -183,13 +183,12 @@ public final class ChampionBladeAbilityListener implements Listener {
         if (spawn != null && (player.getWorld() != spawn.getWorld() || player.getLocation().distanceSquared(spawn) > 576)) player.teleport(spawn);
         player.closeInventory();
         player.setInvulnerable(true);
-        player.sendMessage(ChatColor.GOLD + "You have received justice.");
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         if (bannedPlayers.contains(e.getPlayer().getUniqueId())) {
-            Bukkit.getScheduler().runTask(plugin, () -> enforceSpectatorBan(e.getPlayer()));
+            Bukkit.getScheduler().runTask(plugin, () -> { enforceSpectatorBan(e.getPlayer()); e.getPlayer().sendMessage(ChatColor.GOLD + "You have received justice."); });
         }
     }
 
@@ -317,6 +316,7 @@ public final class ChampionBladeAbilityListener implements Listener {
                     if (ban) {
                         online.closeInventory();
                         enforceSpectatorBan(online);
+                        online.sendMessage(ChatColor.GOLD + "You have received justice.");
                     } else {
                         clearYellowNametag(online);
                         online.sendMessage(ChatColor.RED+"You have been kicked from the Cause.");
