@@ -186,6 +186,11 @@ public final class TarnishSwordAbilityListener implements Listener {
             Entity entity = world.spawnEntity(spawn, types[i]);
             entity.getPersistentDataContainer().set(summonOwnerKey, PersistentDataType.STRING, wielder.getUniqueId().toString());
             if (entity instanceof LivingEntity living) {
+                // Give every Tarnish summon 50 hearts (100 health points).
+                if (living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null) {
+                    living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).setBaseValue(100.0);
+                    living.setHealth(100.0);
+                }
                 living.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 20 * 60 * 10, 1, true, false, true));
                 living.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 60 * 10, 2, true, false, true));
                 living.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 20 * 60 * 10, 0, true, false, true));
@@ -247,8 +252,10 @@ public final class TarnishSwordAbilityListener implements Listener {
     public void preventSummonedMobsTargetingTeams(EntityTargetLivingEntityEvent event) {
         String ownerId = event.getEntity().getPersistentDataContainer().get(summonOwnerKey, PersistentDataType.STRING);
         if (ownerId == null || !(event.getTarget() instanceof Player target)) return;
-        Player owner = Bukkit.getPlayer(UUID.fromString(ownerId));
-        if (owner != null && protectedFromSummons(owner, target)) {
+        UUID ownerUuid = UUID.fromString(ownerId);
+        Player owner = Bukkit.getPlayer(ownerUuid);
+        // Always protect the summoner, even if scoreboard/team data changes.
+        if (target.getUniqueId().equals(ownerUuid) || (owner != null && protectedFromSummons(owner, target))) {
             event.setCancelled(true);
             if (event.getEntity() instanceof Mob mob) mob.setTarget(null);
         }
@@ -258,8 +265,11 @@ public final class TarnishSwordAbilityListener implements Listener {
     public void preventSummonedMobTeamDamage(EntityDamageByEntityEvent event) {
         String ownerId = event.getDamager().getPersistentDataContainer().get(summonOwnerKey, PersistentDataType.STRING);
         if (ownerId == null || !(event.getEntity() instanceof Player target)) return;
-        Player owner = Bukkit.getPlayer(UUID.fromString(ownerId));
-        if (owner != null && protectedFromSummons(owner, target)) event.setCancelled(true);
+        UUID ownerUuid = UUID.fromString(ownerId);
+        Player owner = Bukkit.getPlayer(ownerUuid);
+        if (target.getUniqueId().equals(ownerUuid) || (owner != null && protectedFromSummons(owner, target))) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
