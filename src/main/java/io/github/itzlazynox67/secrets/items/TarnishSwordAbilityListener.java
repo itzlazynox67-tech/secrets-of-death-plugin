@@ -95,9 +95,12 @@ public final class TarnishSwordAbilityListener implements Listener {
 
     private boolean sameTeam(Player first, Player second) {
         if (first.equals(second)) return true;
-        org.bukkit.scoreboard.Team firstTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(first.getName());
-        org.bukkit.scoreboard.Team secondTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(second.getName());
-        return firstTeam != null && secondTeam != null && firstTeam.equals(secondTeam);
+        org.bukkit.scoreboard.Scoreboard mainScoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+        org.bukkit.scoreboard.Team firstTeam = first.getScoreboard().getEntryTeam(first.getName());
+        org.bukkit.scoreboard.Team secondTeam = second.getScoreboard().getEntryTeam(second.getName());
+        if (firstTeam == null) firstTeam = mainScoreboard.getEntryTeam(first.getName());
+        if (secondTeam == null) secondTeam = mainScoreboard.getEntryTeam(second.getName());
+        return firstTeam != null && secondTeam != null && firstTeam.getName().equals(secondTeam.getName());
     }
 
     private boolean protectedFromSummons(Player owner, Player target) {
@@ -195,7 +198,7 @@ public final class TarnishSwordAbilityListener implements Listener {
         Location wielderLocation = wielder.getLocation();
         for (Player target : Bukkit.getOnlinePlayers()) {
             if (target.equals(wielder) || !target.getWorld().equals(wielder.getWorld())
-                    || target.getLocation().distanceSquared(wielderLocation) > 100.0
+                    || target.getLocation().distanceSquared(wielderLocation) > 400.0
                     || protectedFromSummons(wielder, target)) continue;
             stun(target);
             stunned++;
@@ -205,7 +208,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: stunned " + stunned + " nearby enemy player(s) for 30 seconds.");
             wielder.getWorld().playSound(wielder.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.5f, .6f);
         } else {
-            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players nearby to stun.");
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players within 20 blocks to stun.");
         }
     }
 
