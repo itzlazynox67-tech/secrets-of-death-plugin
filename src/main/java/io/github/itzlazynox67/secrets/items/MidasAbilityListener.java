@@ -287,14 +287,17 @@ public final class MidasAbilityListener implements Listener {
                     int z = centerZ + dz;
                     if (!world.isChunkLoaded(x >> 4, z >> 4)) continue;
 
-                    // Find the surface block at or below the player's feet.
-                    // This follows hills and dips, so the visible terrain is gilded.
+                    // Start at the actual terrain surface for this X/Z column.
+                    // Do not cap the search at the player's Y: hills and raised terrain
+                    // must be converted too, rather than changing blocks underground.
                     org.bukkit.block.Block ground = null;
-                    for (int y = Math.min(centerY, world.getMaxHeight() - 1);
+                    int surfaceY = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                    for (int y = Math.min(surfaceY, world.getMaxHeight() - 1);
                          y >= world.getMinHeight(); y--) {
                         org.bukkit.block.Block candidate = world.getBlockAt(x, y, z);
                         Material type = candidate.getType();
                         if (type.isAir() || type == Material.WATER || type == Material.LAVA) continue;
+                        if (!candidate.isSolid()) continue;
                         if (candidate.getState() instanceof org.bukkit.block.TileState) continue;
                         ground = candidate;
                         break;
