@@ -244,6 +244,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
     }
 
     private final java.util.Map<java.util.UUID, Long> cycletationCooldowns = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, Long> forgedArmorCooldowns = new java.util.HashMap<>();
 
     private void activateCycletation(Player player, String ability) {
         long now = System.currentTimeMillis();
@@ -270,6 +271,12 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
                 player.sendMessage(msg("&bYou received God's Will."));
             }
             case "forged_helmet", "forged_chestplate", "forged_leggings", "forged_boots" -> {
+                long armorReadyAt = forgedArmorCooldowns.getOrDefault(player.getUniqueId(), 0L);
+                if (now < armorReadyAt) {
+                    long seconds = Math.max(1, (armorReadyAt - now + 999) / 1000);
+                    player.sendMessage(msg("&cForged Armor cooldown: " + seconds + "s"));
+                    return;
+                }
                 org.bukkit.Material material = switch (ability) {
                     case "forged_helmet" -> org.bukkit.Material.DIAMOND_HELMET;
                     case "forged_chestplate" -> org.bukkit.Material.DIAMOND_CHESTPLATE;
@@ -289,7 +296,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
                     meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, 4, true);
                     meta.addEnchant(org.bukkit.enchantments.Enchantment.FIRE_PROTECTION, 4, true);
                     meta.addEnchant(org.bukkit.enchantments.Enchantment.MENDING, 1, true);
-                    meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 3, true);
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 10, true);
                     if (ability.equals("forged_helmet")) {
                         meta.addEnchant(org.bukkit.enchantments.Enchantment.RESPIRATION, 3, true);
                         meta.addEnchant(org.bukkit.enchantments.Enchantment.AQUA_AFFINITY, 1, true);
@@ -306,6 +313,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
                     armor.setItemMeta(meta);
                 }
                 giveOrDrop(player, armor);
+                forgedArmorCooldowns.put(player.getUniqueId(), now + 60000L);
                 player.sendMessage(msg("&bYou received " + ChatColor.stripColor(armor.getItemMeta().getDisplayName()) + "."));
             }
             default -> { player.sendMessage(msg("&cUnknown Cycletation entry.")); return; }
