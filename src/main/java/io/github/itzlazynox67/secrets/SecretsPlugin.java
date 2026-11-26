@@ -11,6 +11,7 @@ import io.github.itzlazynox67.secrets.items.CollectionMenu;
 import io.github.itzlazynox67.secrets.items.MidasAbilityListener;
 import io.github.itzlazynox67.secrets.items.SpeedDemonAbilityListener;
 import io.github.itzlazynox67.secrets.items.MasterKeyAbilityListener;
+import io.github.itzlazynox67.secrets.items.ChampionBladeAbilityListener;
 import io.github.itzlazynox67.secrets.items.MidasBlessingManager;
 import io.github.itzlazynox67.secrets.items.MidasBlessingRevokeMenu;
 import org.bukkit.command.PluginCommand;
@@ -43,6 +44,7 @@ public final class SecretsPlugin extends JavaPlugin {
         this.speedDemonAbilityListener = new SpeedDemonAbilityListener(this);
         getServer().getPluginManager().registerEvents(speedDemonAbilityListener, this);
         this.masterKeyAbilityListener = new MasterKeyAbilityListener(this);
+        getServer().getPluginManager().registerEvents(new ChampionBladeAbilityListener(this), this);
         getServer().getPluginManager().registerEvents(masterKeyAbilityListener, this);
         this.artifactAbilityListener = new ArtifactAbilityListener(this);
         this.silenceAbilityListener = new SilenceAbilityListener(this);
