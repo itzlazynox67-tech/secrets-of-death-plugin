@@ -41,7 +41,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                     if (!hasTarnishInInventory(wielder)) continue;
                     wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1, true, false, true));
                     if (isStormEmpowered(wielder)) {
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 4, true, false, true));
                         wielder.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 3, true, false, true));
                         wielder.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 2, true, false, true));
                         wielder.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 1, true, false, true));
@@ -188,8 +188,7 @@ public final class TarnishSwordAbilityListener implements Listener {
         for (Player target : Bukkit.getOnlinePlayers()) {
             if (target.equals(wielder) || !target.getWorld().equals(wielder.getWorld())
                     || target.getLocation().distanceSquared(wielderLocation) > 100.0
-                    || protectedFromSummons(wielder, target)
-) continue;
+                    || protectedFromSummons(wielder, target)) continue;
             stun(target);
             stunned++;
         }
