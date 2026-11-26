@@ -12,7 +12,6 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -163,19 +162,19 @@ public final class MidasAbilityListener implements Listener {
     public void onUse(PlayerInteractEvent event) {
         if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND || !isMidas(event.getItem())) return;
         Action action = event.getAction();
+        Player player = event.getPlayer();
+
+        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+            event.setCancelled(true);
+            if (player.isSneaking()) plugin.getMidasBlessingRevokeMenu().openHome(player);
+            else activateCataclysm(player);
+            return;
+        }
+
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
         event.setCancelled(true);
-        Player player = event.getPlayer();
         if (player.isSneaking()) activateEternity(player);
         else activateReversal(player);
-    }
-
-    @EventHandler
-    public void onMidasSwing(PlayerAnimationEvent event) {
-        Player player = event.getPlayer();
-        if (!isMidas(player.getInventory().getItemInMainHand())) return;
-        if (player.isSneaking()) plugin.getMidasBlessingRevokeMenu().openHome(player);
-        else activateCataclysm(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -261,6 +260,8 @@ public final class MidasAbilityListener implements Listener {
         int centerY = center.getBlockY();
         int centerZ = center.getBlockZ();
 
+        // Every block position inside the sphere becomes solid gold, including air.
+        // Keep the original state so the entire area is restored after 60 seconds.
         for (int x = centerX - radius; x <= centerX + radius; x++) {
             for (int y = Math.max(world.getMinHeight(), centerY - radius); y <= Math.min(world.getMaxHeight() - 1, centerY + radius); y++) {
                 for (int z = centerZ - radius; z <= centerZ + radius; z++) {
@@ -270,7 +271,6 @@ public final class MidasAbilityListener implements Listener {
                     if (dx * dx + dy * dy + dz * dz > CATACLYSM_RADIUS * CATACLYSM_RADIUS) continue;
 
                     org.bukkit.block.Block block = world.getBlockAt(x, y, z);
-                    if (block.getType().isAir()) continue;
                     BlockPosition position = BlockPosition.of(block);
                     TemporaryGold existing = temporaryGoldBlocks.get(position);
                     if (existing == null) {
@@ -278,10 +278,7 @@ public final class MidasAbilityListener implements Listener {
                     } else {
                         existing.expiresAt = expiresAt;
                     }
-                    // Cataclysm turns the terrain into a mix of solid gold and raw gold blocks.
-                    Material goldType = ThreadLocalRandom.current().nextInt(4) == 0
-                            ? Material.RAW_GOLD_BLOCK : Material.GOLD_BLOCK;
-                    if (block.getType() != goldType) block.setType(goldType, false);
+                    if (block.getType() != Material.GOLD_BLOCK) block.setType(Material.GOLD_BLOCK, false);
                 }
             }
         }
