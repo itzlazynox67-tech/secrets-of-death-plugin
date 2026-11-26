@@ -119,6 +119,8 @@ public final class TarnishSwordAbilityListener implements Listener {
     public void onTarnishHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player wielder) || !isHoldingTarnish(wielder)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(wielder)) return;
+        // Tarnish's own summoned trial mobs are never valid targets for its hit effects.
+        if (target.getPersistentDataContainer().has(summonOwnerKey, PersistentDataType.STRING)) return;
 
         int hits = hitCounts.merge(wielder.getUniqueId(), 1, Integer::sum);
         Location hitLocation = target.getLocation().clone();
@@ -167,6 +169,11 @@ public final class TarnishSwordAbilityListener implements Listener {
             spawn.setY(world.getHighestBlockYAt(spawn) + 1);
             Entity entity = world.spawnEntity(spawn, types[i]);
             entity.getPersistentDataContainer().set(summonOwnerKey, PersistentDataType.STRING, wielder.getUniqueId().toString());
+            if (entity instanceof LivingEntity living) {
+                living.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 20 * 60 * 10, 1, true, false, true));
+                living.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 60 * 10, 2, true, false, true));
+                living.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 20 * 60 * 10, 0, true, false, true));
+            }
             if (entity instanceof Mob mob) mob.setTarget(target);
             entity.setCustomName(ChatColor.DARK_PURPLE + "Tarnished Trial Spawn");
             entity.setCustomNameVisible(false);
