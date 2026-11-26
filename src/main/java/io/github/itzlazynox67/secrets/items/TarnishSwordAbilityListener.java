@@ -95,15 +95,14 @@ public final class TarnishSwordAbilityListener implements Listener {
 
     private boolean sameTeam(Player first, Player second) {
         if (first.equals(second)) return true;
-        org.bukkit.scoreboard.Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
-        org.bukkit.scoreboard.Team firstMain = main.getEntryTeam(first.getName());
-        org.bukkit.scoreboard.Team secondMain = main.getEntryTeam(second.getName());
-        if (firstMain != null && secondMain != null) {
-            return firstMain.getName().equalsIgnoreCase(secondMain.getName());
-        }
+
+        // Only treat players as teammates when both are explicitly assigned
+        // to the same team on the same scoreboard. A missing team must never
+        // make an otherwise valid nearby enemy disappear from Tarnish's scan.
         org.bukkit.scoreboard.Scoreboard firstBoard = first.getScoreboard();
         org.bukkit.scoreboard.Scoreboard secondBoard = second.getScoreboard();
         if (firstBoard != secondBoard) return false;
+
         org.bukkit.scoreboard.Team firstTeam = firstBoard.getEntryTeam(first.getName());
         org.bukkit.scoreboard.Team secondTeam = secondBoard.getEntryTeam(second.getName());
         return firstTeam != null && secondTeam != null
@@ -140,7 +139,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                 || feet == Material.WATER || body == Material.WATER || head == Material.WATER;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onTarnishHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player wielder) || !isHoldingTarnish(wielder)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(wielder)) return;
@@ -232,7 +231,7 @@ public final class TarnishSwordAbilityListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onRightClickStun(PlayerInteractEvent event) {
         // Air interactions can be marked cancelled by vanilla prediction; still process this ability.
-        if (event.getHand() == null || event.getHand().name().equals("OFF_HAND")) return;
+        if (event.getHand() == null || event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player wielder = event.getPlayer();
         if (!isHoldingTarnish(wielder)) return;
