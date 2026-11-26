@@ -4,6 +4,7 @@ import io.github.itzlazynox67.secrets.SecretsPlugin;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -202,32 +203,57 @@ public final class ArtifactAbilityListener implements Listener {
                 player.sendMessage(ChatColor.RED + "DeadLock locked " + locked + " target(s) in the 10-block area.");
             }
         }
-        if (!"deaths_embrace".equals(weaponId) || deathEmbraceSplashProcessing.contains(player.getUniqueId())) return;
+    }
+
+    /**
+     * Run the Death's Embrace pulse after the original hit has fully resolved.
+     * MONITOR + next-tick execution avoids reading an unfinished/cancelled damage event
+     * and ensures the nearby-player health changes are not overwritten by that hit.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDeathEmbraceSplash(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player player)) return;
+        if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))) return;
         if (!(event.getEntity() instanceof Player struckPlayer)) return;
+        if (deathEmbraceSplashProcessing.contains(player.getUniqueId())) return;
+
         double sharedDamage = event.getFinalDamage();
-        if (sharedDamage <= 0) return;
+        if (sharedDamage <= 0.0) return;
+
         long now = System.currentTimeMillis();
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
         pulseCooldowns.put(player.getUniqueId(), now + 750L);
-        Location center = struckPlayer.getLocation();
+
+        UUID attackerId = player.getUniqueId();
+        UUID struckId = struckPlayer.getUniqueId();
+        Location center = struckPlayer.getLocation().clone();
         player.getWorld().playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.0f);
         spawnDeathEmbraceVisual(center);
-        deathEmbraceSplashProcessing.add(player.getUniqueId());
-        try {
-            for (Entity entity : struckPlayer.getNearbyEntities(15, 15, 15)) {
-                if (!(entity instanceof Player nearbyPlayer) || nearbyPlayer.equals(player)
-                        || nearbyPlayer.equals(struckPlayer)) continue;
-                if (nearbyPlayer.getLocation().distanceSquared(center) > 225) continue;
-                if (plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
-                // Apply the struck player's final damage as direct health loss.
-                // Calling damage() here recalculates armor, Resistance, and other modifiers,
-                // so nearby players can take less damage than the original target.
-                double remainingHealth = Math.max(0.0, nearbyPlayer.getHealth() - sharedDamage);
-                nearbyPlayer.setHealth(remainingHealth);
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player attacker = Bukkit.getPlayer(attackerId);
+            Player originalTarget = Bukkit.getPlayer(struckId);
+            if (attacker == null || !attacker.isOnline() || originalTarget == null
+                    || !originalTarget.isOnline() || center.getWorld() == null) return;
+
+            deathEmbraceSplashProcessing.add(attackerId);
+            try {
+                for (Entity entity : center.getWorld().getNearbyEntities(center, 15, 15, 15)) {
+                    if (!(entity instanceof Player nearbyPlayer)
+                            || nearbyPlayer.getUniqueId().equals(attackerId)
+                            || nearbyPlayer.getUniqueId().equals(struckId)) continue;
+                    if (nearbyPlayer.getLocation().distanceSquared(center) > 225.0) continue;
+                    if (plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
+
+                    // Match the original hit's final damage exactly, without recalculating
+                    // each nearby player's armor or resistance.
+                    nearbyPlayer.setHealth(Math.max(0.0, nearbyPlayer.getHealth() - sharedDamage));
+                    nearbyPlayer.setNoDamageTicks(0);
+                }
+            } finally {
+                deathEmbraceSplashProcessing.remove(attackerId);
             }
-        } finally {
-            deathEmbraceSplashProcessing.remove(player.getUniqueId());
-        }
+        });
     }
 
     private void spawnDeadLockVisual(LivingEntity target) {
