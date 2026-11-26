@@ -7,6 +7,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -24,6 +27,8 @@ public final class TarnishSwordAbilityListener implements Listener {
     private final Map<UUID, Integer> hitCounts = new HashMap<>();
     private final Map<UUID, Long> stunnedUntil = new HashMap<>();
     private final Map<UUID, Long> waterStrikeCooldowns = new HashMap<>();
+    private final Map<UUID, Long> stunAbilityCooldowns = new HashMap<>();
+    private final NamespacedKey summonOwnerKey = new NamespacedKey(plugin, "tarnish_summon_owner");
 
     public TarnishSwordAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
@@ -32,7 +37,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             @Override public void run() {
                 long now = System.currentTimeMillis();
                 for (Player wielder : Bukkit.getOnlinePlayers()) {
-                    if (!isHoldingTarnish(wielder)) continue;
+                    if (!hasTarnishInInventory(wielder)) continue;
                     wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1, true, false, true));
                     if (isStormEmpowered(wielder)) {
                         wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 4, true, false, true));
@@ -68,6 +73,29 @@ public final class TarnishSwordAbilityListener implements Listener {
         return "tarnish_sword".equals(id(player.getInventory().getItemInMainHand()));
     }
 
+    private boolean hasTarnishInInventory(Player player) {
+        for (ItemStack item : player.getInventory().getContents()) {
+            if ("tarnish_sword".equals(id(item))) return true;
+        }
+        return false;
+    }
+
+    private boolean isStormEmpowered(Player player) {
+        // Water triggers Flood Punishment, but only rain grants the holder's storm buffs.
+        return player.getWorld().hasStorm();
+    }
+
+    private boolean sameTeam(Player first, Player second) {
+        if (first.equals(second)) return true;
+        org.bukkit.scoreboard.Team firstTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(first.getName());
+        org.bukkit.scoreboard.Team secondTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(second.getName());
+        return firstTeam != null && secondTeam != null && firstTeam.equals(secondTeam);
+    }
+
+    private boolean protectedFromSummons(Player owner, Player target) {
+        return sameTeam(owner, target);
+    }
+
     private boolean isInWater(Player player) {
         Material feet = player.getLocation().getBlock().getType();
         Material head = player.getEyeLocation().getBlock().getType();
@@ -91,19 +119,22 @@ public final class TarnishSwordAbilityListener implements Listener {
         hitLocation.getWorld().playSound(hitLocation, Sound.BLOCK_TRIAL_SPAWNER_AMBIENT, .8f, 1.25f);
 
         if (isStormEmpowered(wielder) || hits % 5 == 0) strikeComboArea(wielder, target);
-        if (hits % 10 == 0) {
-            spawnTrialMobs(target);
-            if (target instanceof Player victim) stun(victim);
-        }
+        if (hits % 10 == 0) spawnTrialMobs(wielder, target);
     }
 
     private void strikeComboArea(Player wielder, LivingEntity target) {
         World world = target.getWorld();
         Location center = target.getLocation();
+        if (target instanceof Player targetPlayer && !protectedFromSummons(wielder, targetPlayer)) {
+            targetPlayer.damage(20.0, wielder);
+        } else if (!(target instanceof Player)) {
+            target.damage(20.0, wielder);
+        }
         strike(world, center);
         for (Entity entity : world.getNearbyEntities(center, 10, 10, 10)) {
             if (!(entity instanceof Player nearby) || nearby.equals(wielder) || nearby.equals(target)) continue;
-            if (plugin.getProtectionManager().isProtected(nearby)) continue;
+            if (plugin.getProtectionManager().isProtected(nearby) || protectedFromSummons(wielder, nearby)) continue;
+            nearby.damage(20.0, wielder);
             strike(world, nearby.getLocation());
         }
         world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, center, 55, 2, 1.5, 2, .08);
@@ -115,15 +146,20 @@ public final class TarnishSwordAbilityListener implements Listener {
         world.spawnParticle(Particle.ELECTRIC_SPARK, location, 25, .7, 1, .7, .08);
     }
 
-    private void spawnTrialMobs(LivingEntity target) {
+    private void spawnTrialMobs(Player wielder, LivingEntity target) {
         Location center = target.getLocation();
         World world = center.getWorld();
-        EntityType[] types = {EntityType.BREEZE, EntityType.BOGGED, EntityType.SILVERFISH};
+        EntityType[] types = {
+                EntityType.BREEZE, EntityType.BOGGED, EntityType.SKELETON, EntityType.STRAY,
+                EntityType.ZOMBIE, EntityType.HUSK, EntityType.SPIDER, EntityType.CAVE_SPIDER,
+                EntityType.SLIME, EntityType.SILVERFISH
+        };
         for (int i = 0; i < types.length; i++) {
             double angle = Math.PI * 2 * i / types.length;
-            Location spawn = center.clone().add(Math.cos(angle) * 2.5, 0, Math.sin(angle) * 2.5);
+            Location spawn = center.clone().add(Math.cos(angle) * 3.0, 0, Math.sin(angle) * 3.0);
             spawn.setY(world.getHighestBlockYAt(spawn) + 1);
             Entity entity = world.spawnEntity(spawn, types[i]);
+            entity.getPersistentDataContainer().set(summonOwnerKey, PersistentDataType.STRING, wielder.getUniqueId().toString());
             if (entity instanceof Mob mob) mob.setTarget(target);
             entity.setCustomName(ChatColor.DARK_PURPLE + "Tarnished Trial Spawn");
             entity.setCustomNameVisible(false);
@@ -133,10 +169,57 @@ public final class TarnishSwordAbilityListener implements Listener {
     }
 
     private void stun(Player target) {
-        stunnedUntil.put(target.getUniqueId(), System.currentTimeMillis() + 10_000L);
+        stunnedUntil.put(target.getUniqueId(), System.currentTimeMillis() + 30_000L);
         target.setVelocity(new Vector(0, 0, 0));
-        target.sendMessage(ChatColor.DARK_PURPLE + "Tarnish Sword has stunned you for 10 seconds!");
+        target.sendMessage(ChatColor.DARK_PURPLE + "Tarnish Sword has stunned you for 30 seconds!");
         target.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, target.getLocation().add(0, 1, 0), 70, .7, 1, .7, .04);
+    }
+
+    @EventHandler
+    public void onRightClickStun(PlayerInteractEvent event) {
+        if (event.getHand() == null || event.getHand().name().equals("OFF_HAND")) return;
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Player wielder = event.getPlayer();
+        if (!isHoldingTarnish(wielder)) return;
+        long now = System.currentTimeMillis();
+        long readyAt = stunAbilityCooldowns.getOrDefault(wielder.getUniqueId(), 0L);
+        if (now < readyAt) {
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: Stun recharges in " + Math.max(1, (readyAt - now + 999) / 1000) + "s.");
+            return;
+        }
+        int stunned = 0;
+        for (Entity entity : wielder.getNearbyEntities(10, 10, 10)) {
+            if (!(entity instanceof Player target) || protectedFromSummons(wielder, target)
+                    || plugin.getProtectionManager().isProtected(target)) continue;
+            stun(target);
+            stunned++;
+        }
+        if (stunned > 0) {
+            stunAbilityCooldowns.put(wielder.getUniqueId(), now + 60_000L);
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: stunned " + stunned + " nearby enemy player(s) for 30 seconds.");
+            wielder.getWorld().playSound(wielder.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.5f, .6f);
+        } else {
+            wielder.sendMessage(ChatColor.DARK_PURPLE + "Tarnish: no enemy players nearby to stun.");
+        }
+    }
+
+    @EventHandler
+    public void preventSummonedMobsTargetingTeams(EntityTargetLivingEntityEvent event) {
+        String ownerId = event.getEntity().getPersistentDataContainer().get(summonOwnerKey, PersistentDataType.STRING);
+        if (ownerId == null || !(event.getTarget() instanceof Player target)) return;
+        Player owner = Bukkit.getPlayer(UUID.fromString(ownerId));
+        if (owner != null && protectedFromSummons(owner, target)) {
+            event.setCancelled(true);
+            if (event.getEntity() instanceof Mob mob) mob.setTarget(null);
+        }
+    }
+
+    @EventHandler
+    public void preventSummonedMobTeamDamage(EntityDamageByEntityEvent event) {
+        String ownerId = event.getDamager().getPersistentDataContainer().get(summonOwnerKey, PersistentDataType.STRING);
+        if (ownerId == null || !(event.getEntity() instanceof Player target)) return;
+        Player owner = Bukkit.getPlayer(UUID.fromString(ownerId));
+        if (owner != null && protectedFromSummons(owner, target)) event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
