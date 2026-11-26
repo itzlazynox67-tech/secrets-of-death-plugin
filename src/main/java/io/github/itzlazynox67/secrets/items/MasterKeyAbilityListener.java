@@ -50,6 +50,7 @@ public final class MasterKeyAbilityListener implements Listener {
                 for (UUID id : new ArrayList<>(returnAt.keySet())) {
                     if (returnAt.get(id) <= now && Bukkit.getPlayer(id) != null) returnPlayer(id);
                 }
+                updateCountdownActionBars();
             }
         }.runTaskTimer(plugin, 20L, 20L);
     }
@@ -389,6 +390,33 @@ public final class MasterKeyAbilityListener implements Listener {
     @EventHandler
     public void blockLockedSwap(PlayerSwapHandItemsEvent event) {
         if (isLocked(event.getPlayer(), event.getMainHandItem()) || isLocked(event.getPlayer(), event.getOffHandItem())) event.setCancelled(true);
+    }
+
+    private void updateCountdownActionBars() {
+        long now = System.currentTimeMillis();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            List<String> timers = new ArrayList<>();
+
+            Long exileEnd = returnAt.get(player.getUniqueId());
+            if (exileEnd != null && exileEnd > now && player.getWorld().getName().equals(WORLD_NAME)) {
+                timers.add(ChatColor.LIGHT_PURPLE + "Prison: " + remaining(exileEnd));
+            }
+
+            Set<Material> shown = new LinkedHashSet<>();
+            for (ItemStack item : player.getInventory().getContents()) {
+                if (item == null || item.getType().isAir() || shown.contains(item.getType())) continue;
+                Map<UUID, Long> targets = lockedMaterials.get(item.getType());
+                Long until = targets == null ? null : targets.get(player.getUniqueId());
+                if (until != null && until > now) {
+                    shown.add(item.getType());
+                    timers.add(ChatColor.RED + pretty(item.getType()) + " locked: " + remaining(until));
+                }
+            }
+
+            if (!timers.isEmpty()) {
+                player.sendActionBar(net.kyori.adventure.text.Component.text(String.join(ChatColor.DARK_GRAY + " | ", timers)));
+            }
+        }
     }
 
     private boolean isLocked(Player player, ItemStack item) {
