@@ -16,6 +16,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
+import org.bukkit.NamespacedKey;
+import org.bukkit.persistence.PersistentDataType;
 
 public final class CollectionMenu implements Listener, CommandExecutor {
     private final SecretsPlugin plugin;
@@ -38,7 +40,8 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         menu.setItem(13, entry(plugin.getArtifactRegistry().createItem("silence"), "Silence", "A separate Warden-themed artifact."));
         menu.setItem(17, entry(plugin.getArtifactRegistry().createItem("cycletation"), "Cycletation", "A two-page weather, time, and armor artifact book."));
         menu.setItem(22, entry(plugin.getArtifactRegistry().createItem("shadow_harvester"), "Shadow Harvester", "A standalone mace artifact with two shadow abilities."));
-        menu.setItem(26, entry(plugin.getArtifactRegistry().createItem("midas"), "Midas", "A standalone golden artifact with three abilities."));
+        menu.setItem(24, entry(plugin.getArtifactRegistry().createItem("speed_demon"), "Speed Demon's Soul", "Speed Mode, Speed Dash, Speed Beam, and REGEARA."));
+        menu.setItem(26, entry(plugin.getArtifactRegistry().createItem("midas"), "Midas", "A standalone golden artifact with Golden Touch, Golden Reversal, Golden Eternity, and Golden Cataclysm."));
         player.openInventory(menu);
     }
 
@@ -69,7 +72,10 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         if (item == null) item = new ItemStack(Material.BARRIER);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setLore(List.of(ChatColor.GRAY + description, ChatColor.YELLOW + "Click to receive (admin only)"));
+            String id = meta.getPersistentDataContainer().get(new NamespacedKey(plugin, "collectible_id"), PersistentDataType.STRING);
+            meta.setLore(id == null
+                    ? List.of(ChatColor.GRAY + description, ChatColor.YELLOW + "Click to receive (admin only)")
+                    : List.of(ChatColor.GRAY + description, ChatColor.GRAY + "ID: " + id, ChatColor.YELLOW + "Click to receive (admin only)"));
             item.setItemMeta(meta);
         }
         return item;
@@ -95,7 +101,7 @@ public final class CollectionMenu implements Listener, CommandExecutor {
         }
         if (id == null) {
             int slot = event.getSlot();
-            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : slot == 22 ? "shadow_harvester" : slot == 26 ? "midas" : null;
+            if (title.equals(ChatColor.DARK_AQUA + "Artifacts")) id = slot == 9 ? "book" : slot == 13 ? "silence" : slot == 17 ? "cycletation" : slot == 22 ? "shadow_harvester" : slot == 24 ? "speed_demon" : slot == 26 ? "midas" : null;
         }
         if (id == null) return;
         ItemStack reward;
