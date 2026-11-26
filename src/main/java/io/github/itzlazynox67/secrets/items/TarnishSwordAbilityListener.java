@@ -144,7 +144,7 @@ public final class TarnishSwordAbilityListener implements Listener {
                 || feet == Material.WATER || body == Material.WATER || head == Material.WATER;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTarnishHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player wielder) || !isHoldingTarnish(wielder)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(wielder)) return;
@@ -240,7 +240,6 @@ public final class TarnishSwordAbilityListener implements Listener {
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         Player wielder = event.getPlayer();
         if (!isHoldingTarnish(wielder)) return;
-        event.setCancelled(true);
         long now = System.currentTimeMillis();
         long readyAt = stunAbilityCooldowns.getOrDefault(wielder.getUniqueId(), 0L);
         if (now < readyAt) {
