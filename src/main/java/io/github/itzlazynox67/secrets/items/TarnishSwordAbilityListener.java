@@ -39,17 +39,17 @@ public final class TarnishSwordAbilityListener implements Listener {
                 long now = System.currentTimeMillis();
                 for (Player wielder : Bukkit.getOnlinePlayers()) {
                     if (!hasTarnishInInventory(wielder)) continue;
-                    wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 1, true, false, true));
+                    wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 1, true, false, true));
                     if (isStormEmpowered(wielder)) {
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 100, 4, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 3, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 2, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 100, 1, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, 100, 1, true, false, true));
-                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.CONDUIT_POWER, 100, 0, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 4, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 3, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 2, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 1, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.DOLPHINS_GRACE, 60, 1, true, false, true));
+                        wielder.addPotionEffect(new PotionEffect(PotionEffectType.CONDUIT_POWER, 60, 0, true, false, true));
                         Location at = wielder.getLocation().add(0, 1, 0);
-                        wielder.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, at, 10, .5, .7, .5, .02);
-                        wielder.getWorld().spawnParticle(Particle.GUST, at, 4, .35, .45, .35, .02);
+                        wielder.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, at, 4, .5, .7, .5, .02);
+                        wielder.getWorld().spawnParticle(Particle.GUST, at, 2, .35, .45, .35, .02);
                     }
                     for (Entity entity : wielder.getNearbyEntities(20, 20, 20)) {
                         if (!(entity instanceof Player nearby) || nearby.equals(wielder) || !isInWater(nearby)
@@ -57,13 +57,13 @@ public final class TarnishSwordAbilityListener implements Listener {
                         if (now < waterStrikeCooldowns.getOrDefault(nearby.getUniqueId(), 0L)) continue;
                         waterStrikeCooldowns.put(nearby.getUniqueId(), now + 1000L);
                         nearby.getWorld().strikeLightning(nearby.getLocation());
-                        nearby.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, nearby.getLocation(), 24, .5, 1, .5, .03);
+                        nearby.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION, nearby.getLocation(), 8, .5, 1, .5, .03);
                     }
                 }
                 stunnedUntil.entrySet().removeIf(entry -> entry.getValue() <= now);
                 waterStrikeCooldowns.entrySet().removeIf(entry -> entry.getValue() <= now);
             }
-        }.runTaskTimer(plugin, 1L, 5L);
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private String id(ItemStack item) {
@@ -112,8 +112,8 @@ public final class TarnishSwordAbilityListener implements Listener {
 
         int hits = hitCounts.merge(wielder.getUniqueId(), 1, Integer::sum);
         Location hitLocation = target.getLocation().clone();
-        hitLocation.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, hitLocation, 18, .6, .8, .6, .03);
-        hitLocation.getWorld().spawnParticle(Particle.GUST, hitLocation, 8, .4, .5, .4, .04);
+        hitLocation.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, hitLocation, 6, .6, .8, .6, .03);
+        hitLocation.getWorld().spawnParticle(Particle.GUST, hitLocation, 3, .4, .5, .4, .04);
         hitLocation.getWorld().playSound(hitLocation, Sound.BLOCK_TRIAL_SPAWNER_AMBIENT, .8f, 1.25f);
 
         if (isStormEmpowered(wielder) || hits % 5 == 0) strikeComboArea(wielder, target);
@@ -134,13 +134,13 @@ public final class TarnishSwordAbilityListener implements Listener {
             nearby.damage(20.0);
             strike(world, nearby.getLocation());
         }
-        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, center, 55, 2, 1.5, 2, .08);
+        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, center, 18, 2, 1.5, 2, .08);
         world.playSound(center, Sound.ITEM_TRIDENT_THUNDER, 1.5f, .8f);
     }
 
     private void strike(World world, Location location) {
         world.strikeLightning(location);
-        world.spawnParticle(Particle.ELECTRIC_SPARK, location, 25, .7, 1, .7, .08);
+        world.spawnParticle(Particle.ELECTRIC_SPARK, location, 8, .7, 1, .7, .08);
     }
 
     private void spawnTrialMobs(Player wielder, LivingEntity target) {
@@ -161,7 +161,7 @@ public final class TarnishSwordAbilityListener implements Listener {
             entity.setCustomName(ChatColor.DARK_PURPLE + "Tarnished Trial Spawn");
             entity.setCustomNameVisible(false);
         }
-        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, center, 90, 1.5, 1, 1.5, .08);
+        world.spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, center, 30, 1.5, 1, 1.5, .08);
         world.playSound(center, Sound.BLOCK_TRIAL_SPAWNER_SPAWN_MOB, 1.5f, .7f);
     }
 
@@ -169,7 +169,7 @@ public final class TarnishSwordAbilityListener implements Listener {
         stunnedUntil.put(target.getUniqueId(), System.currentTimeMillis() + 30_000L);
         target.setVelocity(new Vector(0, 0, 0));
         target.sendMessage(ChatColor.DARK_PURPLE + "Tarnish Sword has stunned you for 30 seconds!");
-        target.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, target.getLocation().add(0, 1, 0), 70, .7, 1, .7, .04);
+        target.getWorld().spawnParticle(Particle.TRIAL_SPAWNER_DETECTION_OMINOUS, target.getLocation().add(0, 1, 0), 24, .7, 1, .7, .04);
     }
 
     @EventHandler
