@@ -184,7 +184,7 @@ public final class MidasAbilityListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMidasHit(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player attacker) || !isMidas(attacker.getInventory().getItemInMainHand())) return;
+        if (!(event.getDamager() instanceof Player attacker) || !hasMidas(attacker)) return;
         if (!(event.getEntity() instanceof LivingEntity target) || target.equals(attacker)) return;
         if (target instanceof Player player && plugin.getMidasBlessingManager().isProtected(player)) return;
         UUID id = target.getUniqueId();
