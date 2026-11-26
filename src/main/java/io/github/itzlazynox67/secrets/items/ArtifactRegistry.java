@@ -38,7 +38,8 @@ public final class ArtifactRegistry {
         register("phoenix_wings", "Phoenix Wings", "modeling:phoenix_wings", "A named collectible from the Secrets collection.");
         register("silence", "Silence", "modeling:silence", "A Warden-themed artifact with sonic, debuff, summoning, and Rampage abilities.");
         register("shadow_harvester", "Shadow Harvester", "modeling:shadow_harvester", "A standalone shadow artifact with Shadow Teleport and Shadow Throw.");
-        register("midas", "Midas", "modeling:midas", "A golden artifact with Golden Touch, Golden Reversal, and Golden Eternity.");
+        register("midas", "Midas", "modeling:midas", "A golden artifact with Golden Touch, Golden Reversal, Golden Eternity, and Golden Cataclysm.");
+        register("speed_demon", "Speed Demon's Soul", "modeling:speed_demon", "A standalone speed artifact with Speed Mode, Speed Dash, Speed Beam, and REGEARA.");
         register("midas_blessing", "Midas Blessing", "minecraft:totem_of_undying", "A protection token that grants immunity to Midas abilities only.");
         register("cycletation", "Cycletation", "modeling:cycle", "A two-page weather and time artifact book containing God's Will and the Forged Armor rewards.");
         register("godswill", "God's Will", "minecraft:trident", "A special trident reward from the Cycletation artifact; strikes nearby players with lightning while raining.");
@@ -77,6 +78,7 @@ public final class ArtifactRegistry {
             case "silence" -> Material.NETHERITE_AXE;
             case "shadow_harvester" -> Material.MACE;
             case "midas" -> Material.GOLDEN_SWORD;
+            case "speed_demon" -> Material.WARPED_FUNGUS_ON_A_STICK;
             case "midas_blessing" -> Material.TOTEM_OF_UNDYING;
             case "godswill" -> Material.TRIDENT;
             case "cycletation" -> Material.WRITTEN_BOOK;
@@ -100,6 +102,7 @@ public final class ArtifactRegistry {
             case "silence" -> "&3&lS̷i̷l̷e̷n̷c̷e̷";
             case "shadow_harvester" -> "&5&lShadow Harvester";
             case "midas" -> "&6&lMidas";
+            case "speed_demon" -> "&b&lSpeed Demon's Soul";
             case "midas_blessing" -> "&e&lMidas Blessing";
             case "godswill" -> "&b&lGod's Will";
             case "cycletation" -> "&b&lCycletation";
@@ -127,7 +130,19 @@ public final class ArtifactRegistry {
         String collectionLore = (definition.id().equals("silence") || definition.id().equals("cycletation"))
                 ? "&8Standalone artifact"
                 : definition.id().equals("godswill") ? "&8Cycletation reward" : "&7Secrets of Death and Destruction";
-        if (definition.id().equals("midas")) {
+        if (definition.id().equals("speed_demon")) {
+            meta.setUnbreakable(true);
+            meta.setLore(java.util.List.of(
+                    color("&8Standalone artifact"),
+                    color("&b&lAbilities"),
+                    color("&3Speed Mode &7- Sneak + right-click while looking straight down to toggle Speed IV, extreme attack/mining speed, and a 25-block Slowness I aura."),
+                    color("&3Speed Dash &7- Right-click to dash up to 15 blocks forward."),
+                    color("&3Speed Beam &7- Sneak + right-click to fire a 35-block beam dealing 10 hearts and Slowness V."),
+                    color("&3REGEARA &7- Right-click while looking straight down to immobilize nearby entities for 10 seconds."),
+                    color("&8Beam: 45s | REGEARA: 5m | Dash: 0.25s"),
+                    color("&8ID: speed_demon")
+            ));
+        } else if (definition.id().equals("midas")) {
             meta.setUnbreakable(true);
             meta.setLore(java.util.List.of(
                     color("&8Standalone artifact"),
@@ -160,7 +175,7 @@ public final class ArtifactRegistry {
 
         // Only the book and Death's Embrace use custom resource-pack models.
         // All other artifacts keep their normal vanilla Minecraft item textures.
-        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester") || definition.id().equals("midas")) {
+        if (definition.id().equals("book") || definition.id().equals("deaths_embrace") || definition.id().equals("silence") || definition.id().equals("shadow_harvester") || definition.id().equals("midas") || definition.id().equals("speed_demon")) {
             NamespacedKey modelKey = NamespacedKey.fromString(definition.modelId());
             if (modelKey != null) {
                 meta.setItemModel(modelKey);
