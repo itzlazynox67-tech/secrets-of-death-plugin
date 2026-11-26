@@ -28,11 +28,12 @@ public final class TarnishSwordAbilityListener implements Listener {
     private final Map<UUID, Long> stunnedUntil = new HashMap<>();
     private final Map<UUID, Long> waterStrikeCooldowns = new HashMap<>();
     private final Map<UUID, Long> stunAbilityCooldowns = new HashMap<>();
-    private final NamespacedKey summonOwnerKey = new NamespacedKey(plugin, "tarnish_summon_owner");
+    private final NamespacedKey summonOwnerKey;
 
     public TarnishSwordAbilityListener(SecretsPlugin plugin) {
         this.plugin = plugin;
         this.artifactKey = new NamespacedKey(plugin, "collectible_id");
+        this.summonOwnerKey = new NamespacedKey(plugin, "tarnish_summon_owner");
         new BukkitRunnable() {
             @Override public void run() {
                 long now = System.currentTimeMillis();
@@ -100,10 +101,6 @@ public final class TarnishSwordAbilityListener implements Listener {
         Material feet = player.getLocation().getBlock().getType();
         Material head = player.getEyeLocation().getBlock().getType();
         return player.isInWater() || feet == Material.WATER || head == Material.WATER;
-    }
-
-    private boolean isStormEmpowered(Player player) {
-        return player.getWorld().hasStorm() || isInWater(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
