@@ -283,22 +283,12 @@ public final class ArtifactAbilityListener implements Listener {
 
     // A dramatic, eerie cue for every ordinary player death.
     private void playPlayerDeathSound(Location location) {
-        playServerWideSound(Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1.1f, 0.75f);
-        Bukkit.getScheduler().runTaskLater(plugin, () ->
-                playServerWideSound(Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.5f, 0.55f), 5L);
-        Bukkit.getScheduler().runTaskLater(plugin, () ->
-                playServerWideSound(Sound.ENTITY_ALLAY_DEATH, 1.0f, 0.65f), 11L);
+        playServerWideSound(Sound.ENTITY_WITHER_SPAWN, 1.0f, 2.0f);
     }
 
-    // Death's Embrace gets a heavier, unmistakable server-wide soul-collapse sound.
+    // Death's Embrace uses the same sound at its lowest pitch for a deeper effect.
     private void playDeathEmbraceDeathSound(Location location) {
-        playServerWideSound(Sound.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 0.55f);
-        Bukkit.getScheduler().runTaskLater(plugin, () ->
-                playServerWideSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.2f, 0.65f), 4L);
-        Bukkit.getScheduler().runTaskLater(plugin, () ->
-                playServerWideSound(Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 1.8f, 0.7f), 9L);
-        Bukkit.getScheduler().runTaskLater(plugin, () ->
-                playServerWideSound(Sound.BLOCK_END_PORTAL_SPAWN, 1.3f, 0.6f), 15L);
+        playServerWideSound(Sound.ENTITY_WITHER_SPAWN, 1.0f, 0.0f);
     }
 
     /**
