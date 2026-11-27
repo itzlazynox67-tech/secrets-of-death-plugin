@@ -76,11 +76,10 @@ public final class ArtifactAbilityListener implements Listener {
                     stunned.setVelocity(new Vector(0, 0, 0));
                     Location current = stunned.getLocation();
                     if (current.getWorld() != anchor.getWorld()
-                            || current.distanceSquared(anchor) > 0.000001) {
-                        Location locked = anchor.clone();
-                        locked.setYaw(current.getYaw());
-                        locked.setPitch(current.getPitch());
-                        stunned.teleport(locked);
+                            || current.distanceSquared(anchor) > 0.000001
+                            || current.getYaw() != anchor.getYaw()
+                            || current.getPitch() != anchor.getPitch()) {
+                        stunned.teleport(anchor);
                         stunned.setVelocity(new Vector(0, 0, 0));
                     }
                 }
@@ -375,11 +374,10 @@ public final class ArtifactAbilityListener implements Listener {
         Location destination = event.getTo();
         if (destination.getX() != anchor.getX()
                 || destination.getY() != anchor.getY()
-                || destination.getZ() != anchor.getZ()) {
-            Location locked = anchor.clone();
-            locked.setYaw(destination.getYaw());
-            locked.setPitch(destination.getPitch());
-            event.setTo(locked);
+                || destination.getZ() != anchor.getZ()
+                || destination.getYaw() != anchor.getYaw()
+                || destination.getPitch() != anchor.getPitch()) {
+            event.setTo(anchor.clone());
             event.getPlayer().setVelocity(new org.bukkit.util.Vector(0, 0, 0));
         }
     }
