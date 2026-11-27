@@ -356,14 +356,6 @@ public final class ArtifactAbilityListener implements Listener {
     }
 
     @EventHandler
-    public void stopDeadLockStunVelocity(PlayerVelocityEvent event) {
-        Long until = deadlockStunUntil.get(event.getPlayer().getUniqueId());
-        if (until != null && until > System.currentTimeMillis()) {
-            event.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
-        }
-    }
-
-    @EventHandler
     public void onArtifactUse(PlayerInteractEvent event) {
         if (event.getHand() == null || event.getHand().name().equals("OFF_HAND")) return;
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
