@@ -49,6 +49,43 @@ public final class ArtifactAbilityListener implements Listener {
         this.artifactKey = new NamespacedKey(plugin, "collectible_id");
         this.deathsEmbraceModeKey = new NamespacedKey(plugin, "deaths_embrace_mode");
         startPassiveTask();
+        startDeadLockEnforcement();
+    }
+
+    private void startDeadLockEnforcement() {
+        // Enforce the anchor once per tick so jump input, knockback, and external
+        // velocity changes cannot let a DeadLock victim drift from the locked spot.
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                long now = System.currentTimeMillis();
+                Iterator<Map.Entry<UUID, Long>> iterator = deadlockStunUntil.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<UUID, Long> entry = iterator.next();
+                    UUID playerId = entry.getKey();
+                    if (entry.getValue() <= now) {
+                        iterator.remove();
+                        deadlockStunLocations.remove(playerId);
+                        continue;
+                    }
+
+                    Player stunned = Bukkit.getPlayer(playerId);
+                    Location anchor = deadlockStunLocations.get(playerId);
+                    if (stunned == null || !stunned.isOnline() || anchor == null) continue;
+
+                    stunned.setVelocity(new Vector(0, 0, 0));
+                    Location current = stunned.getLocation();
+                    if (current.getWorld() != anchor.getWorld()
+                            || current.distanceSquared(anchor) > 0.000001) {
+                        Location locked = anchor.clone();
+                        locked.setYaw(current.getYaw());
+                        locked.setPitch(current.getPitch());
+                        stunned.teleport(locked);
+                        stunned.setVelocity(new Vector(0, 0, 0));
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private String id(ItemStack item) {
