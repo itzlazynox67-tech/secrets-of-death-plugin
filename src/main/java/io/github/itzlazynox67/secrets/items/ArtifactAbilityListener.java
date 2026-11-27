@@ -212,16 +212,13 @@ public final class ArtifactAbilityListener implements Listener {
      * MONITOR + next-tick execution avoids reading an unfinished/cancelled damage event
      * and ensures the nearby-player health changes are not overwritten by that hit.
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onDeathEmbraceSplash(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
         if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))
                 && !"deaths_embrace".equals(id(player.getInventory().getItemInOffHand()))) return;
         if (!(event.getEntity() instanceof Player struckPlayer)) return;
         if (deathEmbraceSplashProcessing.contains(player.getUniqueId())) return;
-
-        double sharedDamage = event.getFinalDamage();
-        if (sharedDamage <= 0.0) return;
 
         long now = System.currentTimeMillis();
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
