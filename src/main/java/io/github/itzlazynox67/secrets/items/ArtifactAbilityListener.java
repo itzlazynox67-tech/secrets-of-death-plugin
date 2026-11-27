@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInputEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -38,6 +39,7 @@ public final class ArtifactAbilityListener implements Listener {
     private final Map<UUID, Long> deadlockStunUntil = new HashMap<>();
     private final Map<UUID, Location> deadlockStunLocations = new HashMap<>();
     private final Set<UUID> deathEmbraceSplashProcessing = new HashSet<>();
+    private final Set<UUID> deathEmbraceLethalTargets = new HashSet<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
     private final Map<UUID, Long> phoenixDashCooldowns = new HashMap<>();
     private final Map<UUID, Long> lastForwardPress = new HashMap<>();
@@ -255,6 +257,14 @@ public final class ArtifactAbilityListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onDeathEmbraceKill(PlayerDeathEvent event) {
+        if (deathEmbraceLethalTargets.remove(event.getEntity().getUniqueId())) {
+            event.setDeathMessage(ChatColor.DARK_RED + event.getEntity().getName()
+                    + "'s soul was claimed by Death.");
+        }
+    }
+
     /**
      * Matches the datapack's Death's Embrace pulse:
      * dealing damage while holding the mace triggers a 5-second-cooldown
@@ -305,8 +315,11 @@ public final class ArtifactAbilityListener implements Listener {
                         ItemStack[] savedArmor = victim.getInventory().getArmorContents();
                         victim.getInventory().setArmorContents(new ItemStack[4]);
                         try {
+                            // Mark this damage call so a resulting death gets the custom message.
+                            deathEmbraceLethalTargets.add(victim.getUniqueId());
                             victim.damage(14.0, attacker);
                         } finally {
+                            deathEmbraceLethalTargets.remove(victim.getUniqueId());
                             victim.getInventory().setArmorContents(savedArmor);
                         }
                     } else {
