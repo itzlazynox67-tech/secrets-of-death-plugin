@@ -162,7 +162,9 @@ public final class ArtifactAbilityListener implements Listener {
         if (event.getEntity() instanceof Player victim && plugin.getProtectionManager().isProtected(victim)
                 && event.getDamager() instanceof Player attacker) {
             String attackerWeapon = id(attacker.getInventory().getItemInMainHand());
-            if ("deaths_embrace".equals(attackerWeapon) || "deadlock".equals(attackerWeapon)) {
+            boolean isDeathEmbracePulse = deathEmbraceSplashProcessing.contains(attacker.getUniqueId());
+            if (("deaths_embrace".equals(attackerWeapon) && !isDeathEmbracePulse)
+                    || "deadlock".equals(attackerWeapon)) {
                 event.setCancelled(true);
                 return;
             }
@@ -243,21 +245,23 @@ public final class ArtifactAbilityListener implements Listener {
 
             deathEmbraceSplashProcessing.add(attackerId);
             try {
-                org.bukkit.damage.DamageSource explosionSource =
-                        org.bukkit.damage.DamageSource.builder(org.bukkit.damage.DamageType.EXPLOSION)
-                                .withCausingEntity(attacker)
-                                .build();
-
-                // The datapack damages every nearby entity except dropped items and XP orbs.
+                // Use the attacker as the damage source so Bukkit routes this through
+                // the normal entity-damage pipeline. The processing guard above lets
+                // this custom pulse pass the plugin's protected-player melee check.
+                // The datapack's damage command ignores armor, so apply the exact
+                // 40-point amount directly after clearing vanilla damage immunity.
                 for (Entity nearby : world.getNearbyEntities(center, 10.0, 10.0, 10.0)) {
                     if (!(nearby instanceof LivingEntity target)
                             || target.equals(attacker)
                             || target.getLocation().distanceSquared(center) > 100.0) continue;
 
-                    // The triggering melee hit grants vanilla invulnerability frames.
-                    // Clear them so the pulse applies its full datapack damage immediately.
                     target.setNoDamageTicks(0);
-                    target.damage(40.0, explosionSource);
+                    double remainingHealth = target.getHealth() - 40.0;
+                    if (remainingHealth <= 0.0) {
+                        target.setHealth(0.0);
+                    } else {
+                        target.setHealth(remainingHealth);
+                    }
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
