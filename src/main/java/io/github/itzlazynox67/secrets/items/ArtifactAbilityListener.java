@@ -274,24 +274,31 @@ public final class ArtifactAbilityListener implements Listener {
         }
     }
 
-    // A short, layered chime-and-echo cue for ordinary player deaths.
-    private void playPlayerDeathSound(Location location) {
-        World world = location.getWorld();
-        if (world == null) return;
-        world.playSound(location, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1.8f, 0.65f);
-        world.playSound(location, Sound.BLOCK_NOTE_BLOCK_CHIME, 1.5f, 0.55f);
-        world.playSound(location, Sound.ENTITY_ALLAY_DEATH, 1.2f, 0.8f);
-        world.playSound(location, Sound.BLOCK_SCULK_SENSOR_CLICKING, 1.4f, 0.7f);
+    // Broadcast each death cue at every online player's position so the whole server hears it.
+    private void playServerWideSound(Sound sound, float volume, float pitch) {
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            online.playSound(online.getLocation(), sound, volume, pitch);
+        }
     }
 
-    // Death's Embrace gets its own darker, heavier multi-layered soul-collapse cue.
+    // A dramatic, eerie cue for every ordinary player death.
+    private void playPlayerDeathSound(Location location) {
+        playServerWideSound(Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1.1f, 0.75f);
+        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                playServerWideSound(Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.5f, 0.55f), 5L);
+        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                playServerWideSound(Sound.ENTITY_ALLAY_DEATH, 1.0f, 0.65f), 11L);
+    }
+
+    // Death's Embrace gets a heavier, unmistakable server-wide soul-collapse sound.
     private void playDeathEmbraceDeathSound(Location location) {
-        World world = location.getWorld();
-        if (world == null) return;
-        world.playSound(location, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.8f, 0.55f);
-        world.playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 2.0f, 0.65f);
-        world.playSound(location, Sound.BLOCK_SCULK_SHRIEKER_SHRIEK, 1.6f, 0.75f);
-        world.playSound(location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.8f, 0.45f);
+        playServerWideSound(Sound.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 0.55f);
+        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                playServerWideSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.2f, 0.65f), 4L);
+        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                playServerWideSound(Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 1.8f, 0.7f), 9L);
+        Bukkit.getScheduler().runTaskLater(plugin, () ->
+                playServerWideSound(Sound.BLOCK_END_PORTAL_SPAWN, 1.3f, 0.6f), 15L);
     }
 
     /**
