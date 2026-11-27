@@ -135,7 +135,12 @@ public final class ArtifactAbilityListener implements Listener {
                 || cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION;
         boolean hasBook = hasItemAnywhere(player, "book");
         boolean hasGiftProtection = plugin.getProtectionManager().isProtected(player);
-        if (explosiveDamage && (hasBook || hasGiftProtection)) {
+        // Death's Embrace's custom radius pulse must still damage targets that
+        // otherwise have the plugin's general explosion protection.
+        Entity causingEntity = event.getDamageSource().getCausingEntity();
+        boolean deathEmbracePulse = causingEntity instanceof Player attacker
+                && "deaths_embrace".equals(id(attacker.getInventory().getItemInMainHand()));
+        if (explosiveDamage && (hasBook || hasGiftProtection) && !deathEmbracePulse) {
             event.setCancelled(true);
             return;
         }
@@ -249,6 +254,9 @@ public final class ArtifactAbilityListener implements Listener {
                             || target.equals(attacker)
                             || target.getLocation().distanceSquared(center) > 100.0) continue;
 
+                    // The triggering melee hit grants vanilla invulnerability frames.
+                    // Clear them so the pulse applies its full datapack damage immediately.
+                    target.setNoDamageTicks(0);
                     target.damage(40.0, explosionSource);
                 }
             } finally {
