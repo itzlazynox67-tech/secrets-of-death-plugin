@@ -208,28 +208,28 @@ public final class ArtifactAbilityListener implements Listener {
     }
 
     /**
-     * Run the Death's Embrace pulse after the original hit has fully resolved.
-     * MONITOR + next-tick execution avoids reading an unfinished/cancelled damage event
-     * and ensures the nearby-player health changes are not overwritten by that hit.
+     * Matches the datapack's Death's Embrace pulse:
+     * dealing damage while holding the mace triggers a 5-second-cooldown
+     * explosion pulse that damages entities in a 10-block radius.
      */
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDeathEmbraceSplash(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
-        if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))
-                && !"deaths_embrace".equals(id(player.getInventory().getItemInOffHand()))) return;
-        if (!(event.getEntity() instanceof Player struckPlayer)) return;
+        if (!"deaths_embrace".equals(id(player.getInventory().getItemInMainHand()))) return;
+        if (event.getFinalDamage() <= 0.0) return;
         if (deathEmbraceSplashProcessing.contains(player.getUniqueId())) return;
 
         long now = System.currentTimeMillis();
         if (now < pulseCooldowns.getOrDefault(player.getUniqueId(), 0L)) return;
-        pulseCooldowns.put(player.getUniqueId(), now + 750L);
+        pulseCooldowns.put(player.getUniqueId(), now + 5000L);
 
         UUID attackerId = player.getUniqueId();
         Location center = player.getLocation().clone();
         World world = center.getWorld();
         if (world == null) return;
-        world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.8f, 0.65f);
-        world.spawnParticle(Particle.EXPLOSION, center.clone().add(0, 1, 0), 8, 2.2, 1.0, 2.2, 0.08);
+
+        world.playSound(center, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.0f, 0.8f);
+        world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.85f);
         spawnDeathEmbraceVisual(center);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
@@ -238,23 +238,19 @@ public final class ArtifactAbilityListener implements Listener {
 
             deathEmbraceSplashProcessing.add(attackerId);
             try {
-                // Player-only blast: everyone within 20 blocks is hit, including the
-                // original target. The holder and protection-gift holders are excluded.
-                for (Player nearbyPlayer : world.getPlayers()) {
-                    if (nearbyPlayer.equals(attacker)
-                            || nearbyPlayer.getLocation().distanceSquared(center) > 400.0
-                            || plugin.getProtectionManager().isProtected(nearbyPlayer)) continue;
+                org.bukkit.damage.DamageSource explosionSource =
+                        org.bukkit.damage.DamageSource.builder(org.bukkit.damage.DamageType.EXPLOSION)
+                                .withCausingEntity(attacker)
+                                .build();
 
-                    Vector knockback = nearbyPlayer.getLocation().toVector().subtract(center.toVector());
-                    if (knockback.lengthSquared() < 0.0001) {
-                        knockback = attacker.getLocation().getDirection().clone();
-                    }
-                    knockback.normalize().multiply(1.8).setY(0.75);
-                    nearbyPlayer.setVelocity(knockback);
-                    // Apply the blast directly so another damage listener or
-                    // temporary invulnerability cannot cancel the 5-heart hit.
-                    double remainingHealth = Math.max(0.0, nearbyPlayer.getHealth() - 10.0);
-                    nearbyPlayer.setHealth(remainingHealth);
+                // The datapack damages every nearby entity except dropped items and XP orbs.
+                for (Entity nearby : world.getNearbyEntities(center, 10.0, 10.0, 10.0)) {
+                    if (nearby.equals(attacker)
+                            || nearby instanceof Item
+                            || nearby instanceof ExperienceOrb
+                            || nearby.getLocation().distanceSquared(center) > 100.0) continue;
+
+                    nearby.damage(40.0, explosionSource);
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
@@ -289,26 +285,16 @@ public final class ArtifactAbilityListener implements Listener {
     private void spawnDeathEmbraceVisual(Location center) {
         World world = center.getWorld();
         if (world == null) return;
-        Particle.DustOptions blood = new Particle.DustOptions(Color.fromRGB(235, 18, 42), 2.2f);
-        Particle.DustOptions voidDust = new Particle.DustOptions(Color.fromRGB(18, 0, 12), 1.6f);
+        Location effectCenter = center.clone().add(0, 0.2, 0);
 
-        // Three expanding crimson-and-black shockwave rings.
-        for (int ring = 0; ring < 3; ring++) {
-            double radius = 1.5 + ring * 1.65;
-            double y = 0.25 + ring * 0.18;
-            for (int point = 0; point < 48; point++) {
-                double angle = Math.PI * 2 * point / 48.0;
-                Location particle = center.clone().add(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
-                world.spawnParticle(Particle.DUST, particle, 1, 0, 0, 0, 0, ring == 1 ? voidDust : blood);
-                if (point % 6 == 0) {
-                    world.spawnParticle(Particle.SOUL_FIRE_FLAME, particle, 1, 0.03, 0.08, 0.03, 0.01);
-                }
-            }
-        }
-        world.spawnParticle(Particle.REVERSE_PORTAL, center.clone().add(0, 0.8, 0), 90, 2.2, 1.0, 2.2, 0.12);
-        world.spawnParticle(Particle.ELECTRIC_SPARK, center.clone().add(0, 1, 0), 55, 2.4, 1.1, 2.4, 0.16);
-        world.spawnParticle(Particle.FLASH, center.clone().add(0, 1, 0), 1);
-        world.spawnParticle(Particle.SMOKE, center.clone().add(0, 0.4, 0), 35, 2.0, 0.7, 2.0, 0.035);
+        // Match the datapack's Death's Embrace explosion particles.
+        world.spawnParticle(Particle.SOUL_FIRE_FLAME, effectCenter, 100, 2.5, 0.8, 2.5, 0.03);
+        world.spawnParticle(Particle.LARGE_SMOKE, effectCenter, 100, 3.0, 1.2, 3.0, 0.04);
+        world.spawnParticle(Particle.DUST, center.clone().add(0, 0.5, 0), 150,
+                4.0, 0.5, 4.0, 0.1,
+                new Particle.DustOptions(Color.fromRGB(166, 0, 5), 2.5f));
+        world.spawnParticle(Particle.ASH, effectCenter, 80, 3.0, 0.5, 3.0, 0.02);
+        world.spawnParticle(Particle.EXPLOSION, center.clone().add(0, 1, 0), 1);
     }
 
     @EventHandler
