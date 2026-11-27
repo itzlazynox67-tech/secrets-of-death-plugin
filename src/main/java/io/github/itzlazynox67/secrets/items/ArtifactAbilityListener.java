@@ -255,13 +255,11 @@ public final class ArtifactAbilityListener implements Listener {
                             || target.equals(attacker)
                             || target.getLocation().distanceSquared(center) > 100.0) continue;
 
+                    // Route the pulse through Bukkit's damage pipeline so Totems of
+                    // Undying and other normal death-prevention mechanics can activate.
+                    // Reset immunity first so the pulse is not swallowed by recent damage.
                     target.setNoDamageTicks(0);
-                    double remainingHealth = target.getHealth() - 40.0;
-                    if (remainingHealth <= 0.0) {
-                        target.setHealth(0.0);
-                    } else {
-                        target.setHealth(remainingHealth);
-                    }
+                    target.damage(40.0, attacker);
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
