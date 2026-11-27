@@ -258,16 +258,40 @@ public final class ArtifactAbilityListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onDeathEmbraceKill(PlayerDeathEvent event) {
+    public void onPlayerDeathSounds(PlayerDeathEvent event) {
         Player victim = event.getEntity();
         Player killer = victim.getKiller();
         boolean killedByDeathEmbrace = deathEmbraceLethalTargets.remove(victim.getUniqueId())
                 || (killer != null
                 && "deaths_embrace".equals(id(killer.getInventory().getItemInMainHand())));
+
         if (killedByDeathEmbrace) {
             event.setDeathMessage(ChatColor.DARK_RED + victim.getName()
                     + "'s soul was claimed by Death.");
+            playDeathEmbraceDeathSound(victim.getLocation());
+        } else {
+            playPlayerDeathSound(victim.getLocation());
         }
+    }
+
+    // A short, layered chime-and-echo cue for ordinary player deaths.
+    private void playPlayerDeathSound(Location location) {
+        World world = location.getWorld();
+        if (world == null) return;
+        world.playSound(location, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1.8f, 0.65f);
+        world.playSound(location, Sound.BLOCK_NOTE_BLOCK_CHIME, 1.5f, 0.55f);
+        world.playSound(location, Sound.ENTITY_ALLAY_DEATH, 1.2f, 0.8f);
+        world.playSound(location, Sound.BLOCK_SCULK_SENSOR_CLICKING, 1.4f, 0.7f);
+    }
+
+    // Death's Embrace gets its own darker, heavier multi-layered soul-collapse cue.
+    private void playDeathEmbraceDeathSound(Location location) {
+        World world = location.getWorld();
+        if (world == null) return;
+        world.playSound(location, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.8f, 0.55f);
+        world.playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 2.0f, 0.65f);
+        world.playSound(location, Sound.BLOCK_SCULK_SHRIEKER_SHRIEK, 1.6f, 0.75f);
+        world.playSound(location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.8f, 0.45f);
     }
 
     /**
