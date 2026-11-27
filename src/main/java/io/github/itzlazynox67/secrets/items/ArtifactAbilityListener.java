@@ -222,7 +222,7 @@ public final class ArtifactAbilityListener implements Listener {
         if ("deadlock".equals(weaponId) && event.getEntity() instanceof LivingEntity hitTarget) {
             long now = System.currentTimeMillis();
             if (now >= deadlockCooldowns.getOrDefault(player.getUniqueId(), 0L)) {
-                deadlockCooldowns.put(player.getUniqueId(), now + 1500L);
+                deadlockCooldowns.put(player.getUniqueId(), now + 240000L);
                 Location center = hitTarget.getLocation();
                 int locked = 0;
                 List<LivingEntity> targets = new ArrayList<>();
@@ -239,9 +239,9 @@ public final class ArtifactAbilityListener implements Listener {
                             && plugin.getProtectionManager().isProtected(protectedPlayer)) continue;
                     target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
                     if (target instanceof Player stunnedPlayer) {
-                        // Freeze the player hit and every nearby player in place for 6 seconds.
+                        // Freeze the player hit and every nearby player in place for 10 seconds.
                         UUID stunnedId = stunnedPlayer.getUniqueId();
-                        deadlockStunUntil.put(stunnedId, System.currentTimeMillis() + 6000L);
+                        deadlockStunUntil.put(stunnedId, System.currentTimeMillis() + 10000L);
                         deadlockStunLocations.put(stunnedId, stunnedPlayer.getLocation().clone());
                         stunnedPlayer.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
                     }
