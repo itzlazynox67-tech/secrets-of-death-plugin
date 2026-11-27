@@ -255,11 +255,22 @@ public final class ArtifactAbilityListener implements Listener {
                             || target.equals(attacker)
                             || target.getLocation().distanceSquared(center) > 100.0) continue;
 
-                    // Route the pulse through Bukkit's damage pipeline so Totems of
-                    // Undying and other normal death-prevention mechanics can activate.
-                    // Reset immunity first so the pulse is not swallowed by recent damage.
+                    // Death's Embrace deals 7 hearts to players regardless of armor.
+                    // Temporarily remove player armor while Bukkit processes the hit, then
+                    // restore it immediately. This keeps the normal damage pipeline (so
+                    // Totems of Undying still work) without armor or Protection reducing it.
                     target.setNoDamageTicks(0);
-                    target.damage(40.0, attacker);
+                    if (target instanceof Player victim) {
+                        ItemStack[] savedArmor = victim.getInventory().getArmorContents();
+                        victim.getInventory().setArmorContents(new ItemStack[4]);
+                        try {
+                            victim.damage(14.0, attacker);
+                        } finally {
+                            victim.getInventory().setArmorContents(savedArmor);
+                        }
+                    } else {
+                        target.damage(14.0, attacker);
+                    }
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
