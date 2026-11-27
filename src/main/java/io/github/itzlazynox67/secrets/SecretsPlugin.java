@@ -16,6 +16,7 @@ import io.github.itzlazynox67.secrets.items.TarnishSwordAbilityListener;
 import io.github.itzlazynox67.secrets.items.MidasBlessingManager;
 import io.github.itzlazynox67.secrets.items.MidasBlessingRevokeMenu;
 import io.github.itzlazynox67.secrets.items.OrbitalTntVisibilityListener;
+import io.github.itzlazynox67.secrets.items.OrbitalStrikeRod;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
