@@ -36,6 +36,7 @@ public final class ArtifactAbilityListener implements Listener {
     private final Map<UUID, Long> pulseCooldowns = new HashMap<>();
     private final Map<UUID, Long> deadlockCooldowns = new HashMap<>();
     private final Map<UUID, Long> deadlockStunUntil = new HashMap<>();
+    private final Map<UUID, Location> deadlockStunLocations = new HashMap<>();
     private final Set<UUID> deathEmbraceSplashProcessing = new HashSet<>();
     private final Map<UUID, Long> hellfireCooldowns = new HashMap<>();
     private final Map<UUID, Long> phoenixDashCooldowns = new HashMap<>();
@@ -140,7 +141,11 @@ public final class ArtifactAbilityListener implements Listener {
         Entity causingEntity = event.getDamageSource().getCausingEntity();
         boolean deathEmbracePulse = causingEntity instanceof Player attacker
                 && "deaths_embrace".equals(id(attacker.getInventory().getItemInMainHand()));
-        if (explosiveDamage && (hasBook || hasGiftProtection) && !deathEmbracePulse) {
+        if (explosiveDamage && hasGiftProtection) {
+            event.setCancelled(true);
+            return;
+        }
+        if (explosiveDamage && hasBook && !deathEmbracePulse) {
             event.setCancelled(true);
             return;
         }
@@ -162,9 +167,7 @@ public final class ArtifactAbilityListener implements Listener {
         if (event.getEntity() instanceof Player victim && plugin.getProtectionManager().isProtected(victim)
                 && event.getDamager() instanceof Player attacker) {
             String attackerWeapon = id(attacker.getInventory().getItemInMainHand());
-            boolean isDeathEmbracePulse = deathEmbraceSplashProcessing.contains(attacker.getUniqueId());
-            if (("deaths_embrace".equals(attackerWeapon) && !isDeathEmbracePulse)
-                    || "deadlock".equals(attackerWeapon)) {
+            if ("deaths_embrace".equals(attackerWeapon) || "deadlock".equals(attackerWeapon)) {
                 event.setCancelled(true);
                 return;
             }
@@ -201,7 +204,9 @@ public final class ArtifactAbilityListener implements Listener {
                     target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 120, 10, true, true, true));
                     if (target instanceof Player stunnedPlayer) {
                         // Freeze the player hit and every nearby player in place for 6 seconds.
-                        deadlockStunUntil.put(stunnedPlayer.getUniqueId(), System.currentTimeMillis() + 6000L);
+                        UUID stunnedId = stunnedPlayer.getUniqueId();
+                        deadlockStunUntil.put(stunnedId, System.currentTimeMillis() + 6000L);
+                        deadlockStunLocations.put(stunnedId, stunnedPlayer.getLocation().clone());
                         stunnedPlayer.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
                     }
                     spawnDeadLockVisual(target);
@@ -317,22 +322,36 @@ public final class ArtifactAbilityListener implements Listener {
         world.spawnParticle(Particle.EXPLOSION, center.clone().add(0, 1, 0), 1);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void preventDeadLockVictimJump(PlayerMoveEvent event) {
-        Long stunUntil = deadlockStunUntil.get(event.getPlayer().getUniqueId());
+        UUID playerId = event.getPlayer().getUniqueId();
+        Long stunUntil = deadlockStunUntil.get(playerId);
         if (stunUntil == null) return;
         if (System.currentTimeMillis() >= stunUntil) {
-            deadlockStunUntil.remove(event.getPlayer().getUniqueId());
+            deadlockStunUntil.remove(playerId);
+            deadlockStunLocations.remove(playerId);
             return;
         }
-        if (event.getTo() != null
-                && (event.getFrom().getX() != event.getTo().getX()
-                || event.getFrom().getY() != event.getTo().getY()
-                || event.getFrom().getZ() != event.getTo().getZ())) {
-            event.setTo(new Location(event.getFrom().getWorld(), event.getFrom().getX(),
-                    event.getFrom().getY(), event.getFrom().getZ(),
-                    event.getTo().getYaw(), event.getTo().getPitch()));
+
+        Location anchor = deadlockStunLocations.get(playerId);
+        if (anchor == null || event.getTo() == null) return;
+        Location destination = event.getTo();
+        if (destination.getX() != anchor.getX()
+                || destination.getY() != anchor.getY()
+                || destination.getZ() != anchor.getZ()) {
+            Location locked = anchor.clone();
+            locked.setYaw(destination.getYaw());
+            locked.setPitch(destination.getPitch());
+            event.setTo(locked);
             event.getPlayer().setVelocity(new org.bukkit.util.Vector(0, 0, 0));
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void stopDeadLockStunVelocity(PlayerVelocityEvent event) {
+        Long until = deadlockStunUntil.get(event.getPlayer().getUniqueId());
+        if (until != null && until > System.currentTimeMillis()) {
+            event.setVelocity(new org.bukkit.util.Vector(0, 0, 0));
         }
     }
 
