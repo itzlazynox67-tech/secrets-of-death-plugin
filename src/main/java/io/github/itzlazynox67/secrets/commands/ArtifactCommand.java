@@ -5,6 +5,7 @@ import io.github.itzlazynox67.secrets.items.ArtifactDefinition;
 import io.github.itzlazynox67.secrets.items.ArtifactRegistry;
 import io.github.itzlazynox67.secrets.items.SecretsBookFactory;
 import io.github.itzlazynox67.secrets.items.ProtectionRevokeMenu;
+import io.github.itzlazynox67.secrets.items.OrbitalStrikeRod;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
@@ -71,9 +72,19 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
             case "resetcooldowns", "resetcooldown" -> resetCooldowns(sender, args);
             case "menu" -> openArtifacts(sender);
             case "items" -> openItems(sender);
+            case "orbitals" -> giveOrbitalRod(sender);
             default -> sendHelp(sender, label);
         }
         return true;
+    }
+
+    private void giveOrbitalRod(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(msg("&cOnly players can receive the Orbital Strike Rod."));
+            return;
+        }
+        giveOrDrop(player, OrbitalStrikeRod.create(plugin));
+        player.sendMessage(msg("&bYou received the Orbital Strike Rod. Break it to call an orbital strike!"));
     }
 
     private void listItems(CommandSender sender) {
@@ -473,6 +484,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(msg("&c&lSecrets of Death &7Commands"));
         sender.sendMessage(msg("&f/" + label + " &7- Open the artifact collection menu"));
         sender.sendMessage(msg("&f/" + label + " items &7- Open the regular items menu"));
+        sender.sendMessage(msg("&f/" + label + " orbitals &7- Get the Orbital Strike fishing rod"));
         sender.sendMessage(msg("&f/" + label + " list &7- List registered items"));
         sender.sendMessage(msg("&f/" + label + " info <item> &7- View item details"));
         sender.sendMessage(msg("&f/" + label + " book &7- Get the coordinate book"));
@@ -497,7 +509,7 @@ public final class ArtifactCommand implements CommandExecutor, TabCompleter {
                                                  @NotNull String alias, @NotNull String[] args) {
         if (!sender.isOp()) return List.of();
         if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "midasrevoke", "midasprotection", "menu", "items", "resetcooldowns", "resetcooldown"));
+            List<String> options = new ArrayList<>(List.of("help", "version", "list", "info", "book", "coords", "protection", "revoke", "midasrevoke", "midasprotection", "menu", "items", "resetcooldowns", "resetcooldown", "orbitals"));
             if (sender.hasPermission("secrets.admin")) options.addAll(List.of("give", "giveall", "reload"));
             return filter(options, args[0]);
         }
