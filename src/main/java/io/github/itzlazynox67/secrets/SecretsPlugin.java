@@ -34,6 +34,7 @@ public final class SecretsPlugin extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(new OrbitalTntVisibilityListener(this), this);
+        getServer().getPluginManager().registerEvents(new OrbitalStrikeRod(this), this);
         this.artifactRegistry = new ArtifactRegistry(this);
         this.protectionManager = new ExplosionProtectionManager(this);
         getServer().getPluginManager().registerEvents(protectionManager, this);
