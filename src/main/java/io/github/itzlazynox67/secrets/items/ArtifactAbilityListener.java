@@ -245,12 +245,11 @@ public final class ArtifactAbilityListener implements Listener {
 
                 // The datapack damages every nearby entity except dropped items and XP orbs.
                 for (Entity nearby : world.getNearbyEntities(center, 10.0, 10.0, 10.0)) {
-                    if (nearby.equals(attacker)
-                            || nearby instanceof Item
-                            || nearby instanceof ExperienceOrb
-                            || nearby.getLocation().distanceSquared(center) > 100.0) continue;
+                    if (!(nearby instanceof LivingEntity target)
+                            || target.equals(attacker)
+                            || target.getLocation().distanceSquared(center) > 100.0) continue;
 
-                    nearby.damage(40.0, explosionSource);
+                    target.damage(40.0, explosionSource);
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
