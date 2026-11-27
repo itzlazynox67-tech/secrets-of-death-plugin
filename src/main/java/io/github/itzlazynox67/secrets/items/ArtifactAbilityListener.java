@@ -259,8 +259,13 @@ public final class ArtifactAbilityListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeathEmbraceKill(PlayerDeathEvent event) {
-        if (deathEmbraceLethalTargets.remove(event.getEntity().getUniqueId())) {
-            event.setDeathMessage(ChatColor.DARK_RED + event.getEntity().getName()
+        Player victim = event.getEntity();
+        Player killer = victim.getKiller();
+        boolean killedByDeathEmbrace = deathEmbraceLethalTargets.remove(victim.getUniqueId())
+                || (killer != null
+                && "deaths_embrace".equals(id(killer.getInventory().getItemInMainHand())));
+        if (killedByDeathEmbrace) {
+            event.setDeathMessage(ChatColor.DARK_RED + victim.getName()
                     + "'s soul was claimed by Death.");
         }
     }
