@@ -15,6 +15,7 @@ import io.github.itzlazynox67.secrets.items.ChampionBladeAbilityListener;
 import io.github.itzlazynox67.secrets.items.TarnishSwordAbilityListener;
 import io.github.itzlazynox67.secrets.items.MidasBlessingManager;
 import io.github.itzlazynox67.secrets.items.MidasBlessingRevokeMenu;
+import io.github.itzlazynox67.secrets.items.OrbitalTntVisibilityListener;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -32,6 +33,7 @@ public final class SecretsPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        getServer().getPluginManager().registerEvents(new OrbitalTntVisibilityListener(this), this);
         this.artifactRegistry = new ArtifactRegistry(this);
         this.protectionManager = new ExplosionProtectionManager(this);
         getServer().getPluginManager().registerEvents(protectionManager, this);
