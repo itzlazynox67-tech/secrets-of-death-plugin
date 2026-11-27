@@ -254,8 +254,10 @@ public final class ArtifactAbilityListener implements Listener {
                     }
                     knockback.normalize().multiply(1.8).setY(0.75);
                     nearbyPlayer.setVelocity(knockback);
-                    nearbyPlayer.setNoDamageTicks(0);
-                    nearbyPlayer.damage(10.0, attacker); // 5 hearts of blast damage.
+                    // Apply the blast directly so another damage listener or
+                    // temporary invulnerability cannot cancel the 5-heart hit.
+                    double remainingHealth = Math.max(0.0, nearbyPlayer.getHealth() - 10.0);
+                    nearbyPlayer.setHealth(remainingHealth);
                 }
             } finally {
                 deathEmbraceSplashProcessing.remove(attackerId);
